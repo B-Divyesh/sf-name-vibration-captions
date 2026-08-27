@@ -1,0 +1,18 @@
+{
+  "slug": "name-vibration-captions",
+  "title": "Name Tap",
+  "territory": "utilities",
+  "user": "Hard-of-hearing people in multilingual group conversations who need to notice when their name or a chosen urgent phrase is spoken.",
+  "smallest_useful_product": "Android app that listens only while the user starts a local live-caption session, matches a small personal phrase list with fuzzy phonetic variants, and sends a distinct vibration/visual cue.",
+  "non_goals": [
+    "recording meetings",
+    "speaker identification",
+    "voiceprint storage",
+    "emergency dispatch"
+  ],
+  "success_measure": "In a controlled noisy-conversation test, users notice at least 90% of 20 spoken target-name events while reducing continuous screen watching.",
+  "artifact_class": "android",
+  "monetization": "one-time",
+  "constraints": "On-device ASR only by default; clear consent screen for conversation capture; no claim of perfect recognition; comply with local recording/consent laws.",
+  "state": "RESEARCHED"
+}
