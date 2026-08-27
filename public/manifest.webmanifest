@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "Name Tap — private phrase alerts",
+  "short_name": "Name Tap",
+  "description": "Feel a private cue when your name or chosen phrase is heard in on-device captions.",
+  "start_url": "/?source=pwa&v=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F4F0E6",
+  "theme_color": "#C9FF38",
+  "categories": ["accessibility", "utilities"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Set attention phrases", "short_name": "Add phrase", "url": "/#setup", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
