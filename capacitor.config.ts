@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'in.sociobot.nametap',
+  appId: 'in.sociobot.namevibrationcaptions',
   appName: 'Name Tap',
   webDir: 'dist',
   backgroundColor: '#F4F0E6',
