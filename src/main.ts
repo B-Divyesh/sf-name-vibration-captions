@@ -74,6 +74,7 @@ function phraseMarkup(phrase: Phrase): string {
   return `<li class="phrase-row">
     <span class="phrase-grip" aria-hidden="true">●</span>
     <span><strong>${escapeHtml(phrase.label)}</strong>${variants ? `<small>Also hears: ${variants}</small>` : '<small>Uses fuzzy sound matching</small>'}</span>
+    ${state.license.unlocked ? `<label class="sr-only" for="pattern-${phrase.id}">Vibration for ${escapeHtml(phrase.label)}</label><select class="pattern-select" id="pattern-${phrase.id}" data-id="${phrase.id}" aria-label="Vibration for ${escapeHtml(phrase.label)}"><option value="tap" ${phrase.pattern === 'tap' ? 'selected' : ''}>Tap</option><option value="knock" ${phrase.pattern === 'knock' ? 'selected' : ''}>Knock</option><option value="urgent" ${phrase.pattern === 'urgent' ? 'selected' : ''}>Urgent</option></select>` : ''}
     <button class="mini-button" type="button" data-action="test" data-id="${phrase.id}" aria-label="Test cue for ${escapeHtml(phrase.label)}">Test</button>
     <button class="icon-button" type="button" data-action="remove" data-id="${phrase.id}" aria-label="Remove ${escapeHtml(phrase.label)}">×</button>
   </li>`;
@@ -115,7 +116,7 @@ function setupMarkup(): string {
           <form class="add-form" id="phrase-form">
             <label for="phrase">Phrase and spelling variants</label>
             <div class="field-action">
-              <input id="phrase" name="phrase" type="text" maxlength="100" autocomplete="off" placeholder="Maya, Maia" ${atLimit ? 'disabled' : ''} aria-describedby="phrase-help">
+              <input id="phrase" name="phrase" type="text" maxlength="100" autocomplete="off" placeholder="Maya, Maia" required ${atLimit ? 'disabled' : ''} aria-describedby="phrase-help">
               <button class="square-button" type="submit" ${atLimit ? 'disabled' : ''}>Add phrase</button>
             </div>
             <small id="phrase-help">First entry is the label. Nothing leaves this device.</small>
@@ -215,7 +216,7 @@ function unlockMarkup(): string {
     <div class="price-card">
       <p><span>US</span><strong>$7</strong><small>one-time purchase</small></p>
       ${state.license.unlocked ? `<div class="unlocked-badge"><span aria-hidden="true">✓</span> Lifetime unlocked</div><button class="quiet-button" type="button" data-action="remove-license">Remove from this device</button>` : `<a class="buy-button" href="${checkoutUrl}">Buy lifetime unlock <span aria-hidden="true">↗</span></a>`}
-      <details><summary>Have a license? Restore it</summary><form id="license-form"><label for="license-token">License token</label><input id="license-token" name="license" type="text" autocomplete="off"><button class="mini-button" type="submit">Verify license</button></form></details>
+      <details><summary>Have a license? Restore it</summary><form id="license-form"><label for="license-token">License token</label><input id="license-token" name="license" type="text" autocomplete="off" required><button class="mini-button" type="submit" aria-label="Verify pasted license">Verify license</button></form></details>
       ${state.license.notice ? `<p class="license-notice" role="status">${escapeHtml(state.license.notice)}</p>` : ''}
       <small>Checkout and refunds are handled by Sociobot/Dodo. <a href="/terms">Terms</a> apply.</small>
     </div>
@@ -244,7 +245,7 @@ function render(): void {
   const scrollY = window.scrollY;
   app.innerHTML = state.stage === 'listening'
     ? listeningMarkup()
-    : `${headerMarkup()}${setupMarkup()}${footerMarkup()}<div class="toast ${state.notice ? 'show' : ''}" role="status" aria-live="polite">${escapeHtml(state.notice)}</div>`;
+    : `${headerMarkup()}${setupMarkup()}${footerMarkup()}<div class="toast ${state.notice ? 'show' : ''}" role="status" aria-live="polite"><span>${escapeHtml(state.notice)}</span>${state.removed ? '<button type="button" data-action="undo-remove">Undo</button>' : ''}</div>`;
   if (state.stage !== 'listening' && scrollY > 0) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 
@@ -256,6 +257,7 @@ function bindEvents(): void {
     if (action === 'start') void startListening();
     if (action === 'stop') stopListening();
     if (action === 'remove') removePhrase(button.dataset.id ?? '');
+    if (action === 'undo-remove') void undoRemove();
     if (action === 'test') testPhrase(button.dataset.id ?? '');
     if (action === 'export') exportSettings(state.settings);
     if (action === 'remove-license') { state.license = removeLicense(); render(); }
@@ -274,6 +276,7 @@ function bindEvents(): void {
     if (input.id === 'language') void updateSetting({ language: input.value });
     if (input.id === 'haptic-toggle') void updateSetting({ hapticCue: (input as HTMLInputElement).checked });
     if (input.id === 'visual-toggle') void updateSetting({ visualCue: (input as HTMLInputElement).checked });
+    if (input.classList.contains('pattern-select')) void updatePattern(input.dataset.id ?? '', input.value as HapticPattern);
     if (input.id === 'import-file') void importFile((input as HTMLInputElement).files?.[0]);
   });
 
@@ -296,6 +299,7 @@ async function addPhrase(value: string): Promise<void> {
   const phrase: Phrase = { id: crypto.randomUUID(), label: variants[0] ?? '', variants, pattern: 'tap', createdAt: Date.now() };
   state.settings = { ...state.settings, phrases: [...state.settings.phrases, phrase], updatedAt: Date.now() };
   state.error = '';
+  state.removed = null;
   state.notice = `${phrase.label} added. Use Test to feel the cue.`;
   await saveSettings(state.settings);
   render();
@@ -310,6 +314,30 @@ async function removePhrase(id: string): Promise<void> {
   state.settings = { ...state.settings, phrases: state.settings.phrases.filter((item) => item.id !== id), updatedAt: Date.now() };
   state.notice = `${phrase.label} removed.`;
   await saveSettings(state.settings);
+  render();
+}
+
+async function undoRemove(): Promise<void> {
+  if (!state.removed) return;
+  const { phrase, index } = state.removed;
+  const phrases = [...state.settings.phrases];
+  phrases.splice(index, 0, phrase);
+  state.settings = { ...state.settings, phrases, updatedAt: Date.now() };
+  state.removed = null;
+  state.notice = `${phrase.label} restored.`;
+  await saveSettings(state.settings);
+  render();
+}
+
+async function updatePattern(id: string, pattern: HapticPattern): Promise<void> {
+  if (!state.license.unlocked) return;
+  state.settings = {
+    ...state.settings,
+    phrases: state.settings.phrases.map((phrase) => phrase.id === id ? { ...phrase, pattern } : phrase),
+    updatedAt: Date.now()
+  };
+  await saveSettings(state.settings);
+  state.notice = 'Vibration pattern updated. Use Test to feel it.';
   render();
 }
 
@@ -415,7 +443,7 @@ async function importFile(file: File | undefined): Promise<void> {
 
 function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => {
+  const register = () => {
     void navigator.serviceWorker.register('/sw.js').then((registration) => {
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
@@ -429,5 +457,7 @@ function registerServiceWorker(): void {
     }).catch(() => {
       if (state) { state.notice = 'Offline install is unavailable in this browser.'; render(); }
     });
-  }, { once: true });
+  };
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
 }
