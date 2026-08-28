@@ -12,7 +12,8 @@ Evidence keys used below:
 - `E-404`: `test-results/polish-404-mobile.png`
 - `E-browser`: `npm run test:e2e` — 48/48 desktop and 390 px tests
 - `E-claims`: all 25 commands in `.factory/claims.json` passed from clean clone `/tmp/name-tap-clean-Cuew7v`
-- Live checks use `https://name-vibration-captions.sociobot.in` and are recorded in the handoff after deployment.
+- `E-live`: cold production audit passed demo isolation/reset/exit, route focus, 44 px targets, offline reload, zero off-origin requests, zero console errors, and zero serious/critical axe findings.
+- Live checks use `https://name-vibration-captions.sociobot.in`; `/404` and `/does-not-exist` both return the designed page with HTTP 404.
 
 ## Findings
 
@@ -125,3 +126,11 @@ Evidence keys used below:
 | M-1 | Build-derived cache version and update flow remain intact. | `@claim:build-artifacts`; offline browser test |
 | M-2 | Expensive texture remains absent and budgets pass. | Lighthouse record in handoff; build sizes |
 | L-1 | CSP, permissions, framing, cache, and manifest MIME policies remain configured. | deployment unit tests; live header checks |
+
+## Final live evidence
+
+- Deployment ID: `fc36a285-9838-439d-8fcf-da622e9dd295`.
+- Home/demo/privacy/terms factory-verifier screenshots: `.factory/evidence/live-*/screenshot-{desktop,mobile}.png`.
+- Live Lighthouse: 100 Performance, 100 Accessibility, 100 Best Practices, 100 SEO; LCP 1.1 s; TBT 30 ms; CLS 0.
+- Live/local hashes match: JS `00f0046…bd64`; CSS `0bdd336…6110`.
+- The cold browser audit rechecked every behavioral finding through the demo and real-data exit flow.

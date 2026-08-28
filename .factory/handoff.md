@@ -1,7 +1,7 @@
 # Name Tap polish round 1 handoff
 
 Work order: `name-vibration-captions-polish-1`  
-Repair commits: `37e0a62` plus the final evidence commit  
+Repair commits: `37e0a62`, `80f4d8f`, `1c6d956`, `5f306ab`, and `6340a89` plus the final evidence commit  
 Live URL: <https://name-vibration-captions.sociobot.in>
 
 ## Delivered
@@ -35,7 +35,7 @@ Every finding is mapped in `.factory/polish-1.md`.
 - `npm run cap:sync` — PASS.
 - Android Gradle and hardware tests — unavailable because this static-deploy worker has no Java, Android SDK, or physical device. Static native bridge tests pass.
 
-Local verifier screenshots are under `.factory/evidence/local-*` in the work container. Key mobile views are referenced by `.factory/polish-1.md`.
+Local and live verifier screenshots are under `.factory/evidence/` in the work container. Key mobile views are referenced by `.factory/polish-1.md`.
 
 ## Run
 
@@ -50,4 +50,19 @@ npm run cap:sync
 
 ## Deployment and live recheck
 
-Pending final push/deploy. This section will be replaced with deployed hashes, status codes, accessibility results, and cold screenshots before handoff.
+Azure Static Web Apps deployment `fc36a285-9838-439d-8fcf-da622e9dd295` succeeded in `eastus2` on 28 August 2026.
+
+- `/`, `/demo`, `/privacy`, and `/terms` return 200.
+- `/404`, `/404/`, and `/does-not-exist` return 404 with the designed Name Tap page.
+- Manifest MIME is `application/manifest+json`; the social image and 180 px Apple icon return 200 with correct image types.
+- CSP, microphone Permissions-Policy, frame denial, no-sniff, and referrer policy are live.
+- A cold 390 × 844 browser flow passed hero comprehension, real/demo isolation, reset, Start for real, legal routes, route focus, 44 px targets, offline demo reload, and zero console errors.
+- Live Playwright axe scan found zero serious or critical issues.
+- Live request audit found zero off-origin requests during the full demo flow.
+- Live Lighthouse: Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 1.1 s, TBT 30 ms, CLS 0.
+- Deployed JS SHA-256: `00f0046d2e9bf8bf5fd043c5370861ff5d65fe61c576db38bf2102cb2acebd64`.
+- Deployed CSS SHA-256: `0bdd336bdc8c0daf5b07a7aff77720ea4214d4f2eef38beb156ee43cf53c6110`.
+- Both deployed hashes match the local `dist/` files exactly.
+- Live link crawl passed all ten internal links; `/404` is the only intentional 404.
+
+No review finding remains open. The only execution boundary is physical Android hardware verification, which this static worker cannot perform.
