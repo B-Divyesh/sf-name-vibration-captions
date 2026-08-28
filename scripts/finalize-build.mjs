@@ -22,7 +22,6 @@ const routeMeta = {
 };
 
 for (const route of Object.keys(routeMeta)) {
-  await mkdir(new URL(`${route}/`, dist), { recursive: true });
   const [title, description] = routeMeta[route];
   const routeHtml = index
     .replace(/<title>[^<]+<\/title>/, `<title>${title}</title>`)
@@ -33,8 +32,12 @@ for (const route of Object.keys(routeMeta)) {
     .replace(/<meta property="og:url" content="[^"]+" \/>/, `<meta property="og:url" content="https://name-vibration-captions.sociobot.in/${route}" />`)
     .replace(/<meta name="twitter:title" content="[^"]+" \/>/, `<meta name="twitter:title" content="${title}" />`)
     .replace(/<meta name="twitter:description" content="[^"]+" \/>/, `<meta name="twitter:description" content="${description}" />`);
-  await writeFile(new URL(`${route}/index.html`, dist), routeHtml);
-  if (route === '404') await writeFile(new URL('404.html', dist), routeHtml);
+  if (route === '404') {
+    await writeFile(new URL('404.html', dist), routeHtml);
+  } else {
+    await mkdir(new URL(`${route}/`, dist), { recursive: true });
+    await writeFile(new URL(`${route}/index.html`, dist), routeHtml);
+  }
 }
 
 console.log(`Static routes created; service worker cache ${buildVersion}.`);
