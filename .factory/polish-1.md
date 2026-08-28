@@ -129,7 +129,7 @@ Evidence keys used below:
 
 ## Final live evidence
 
-- Deployment ID: `fc36a285-9838-439d-8fcf-da622e9dd295`.
+- Final deployment ID: `2ec6138c-11ba-49c5-902d-444505043219`.
 - Home/demo/privacy/terms factory-verifier screenshots: `.factory/evidence/live-*/screenshot-{desktop,mobile}.png`.
 - Live Lighthouse: 100 Performance, 100 Accessibility, 100 Best Practices, 100 SEO; LCP 1.1 s; TBT 30 ms; CLS 0.
 - Live/local hashes match: JS `00f0046…bd64`; CSS `0bdd336…6110`.

@@ -1,7 +1,7 @@
 # Name Tap polish round 1 handoff
 
 Work order: `name-vibration-captions-polish-1`  
-Repair commits: `37e0a62`, `80f4d8f`, `1c6d956`, `5f306ab`, and `6340a89` plus the final evidence commit  
+Repair commits: `37e0a62` through `d69605f`, plus this final evidence-only commit  
 Live URL: <https://name-vibration-captions.sociobot.in>
 
 ## Delivered
@@ -50,7 +50,7 @@ npm run cap:sync
 
 ## Deployment and live recheck
 
-Azure Static Web Apps deployment `fc36a285-9838-439d-8fcf-da622e9dd295` succeeded in `eastus2` on 28 August 2026.
+Azure Static Web Apps deployment `2ec6138c-11ba-49c5-902d-444505043219` succeeded in `eastus2` on 28 August 2026.
 
 - `/`, `/demo`, `/privacy`, and `/terms` return 200.
 - `/404`, `/404/`, and `/does-not-exist` return 404 with the designed Name Tap page.
@@ -64,5 +64,6 @@ Azure Static Web Apps deployment `fc36a285-9838-439d-8fcf-da622e9dd295` succeede
 - Deployed CSS SHA-256: `0bdd336bdc8c0daf5b07a7aff77720ea4214d4f2eef38beb156ee43cf53c6110`.
 - Both deployed hashes match the local `dist/` files exactly.
 - Live link crawl passed all ten internal links; `/404` is the only intentional 404.
+- A final clean clone at pushed commit `d69605f` ran all 25 claim commands: 25/25 PASS.
 
 No review finding remains open. The only execution boundary is physical Android hardware verification, which this static worker cannot perform.
