@@ -1,3 +1,5 @@
+import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
+
 interface RecognitionAlternativeLike { transcript: string; confidence: number }
 interface RecognitionResultLike {
   readonly isFinal: boolean;
@@ -30,6 +32,24 @@ interface RecognitionConstructor {
 
 type CaptionCallback = (text: string, final: boolean) => void;
 
+interface NativeSpeechStatus { available: boolean; reason?: string }
+interface NativeCaption { text: string; final: boolean }
+interface NativeSpeechError { message: string }
+interface NativeSpeechPlugin {
+  getStatus(): Promise<NativeSpeechStatus>;
+  start(options: { language: string }): Promise<void>;
+  stop(): Promise<void>;
+  vibrate(options: { pattern: number[] }): Promise<void>;
+  addListener(eventName: 'caption', listenerFunc: (event: NativeCaption) => void): Promise<PluginListenerHandle>;
+  addListener(eventName: 'error', listenerFunc: (event: NativeSpeechError) => void): Promise<PluginListenerHandle>;
+}
+
+const NativeSpeech = registerPlugin<NativeSpeechPlugin>('LocalSpeech');
+
+function usesNativeAndroidBridge(): boolean {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+}
+
 function constructor(): RecognitionConstructor | undefined {
   const speechWindow = window as unknown as {
     SpeechRecognition?: RecognitionConstructor;
@@ -39,6 +59,7 @@ function constructor(): RecognitionConstructor | undefined {
 }
 
 export function localSpeechSupport(): 'ready' | 'missing' | 'unknown' {
+  if (usesNativeAndroidBridge()) return 'ready';
   const Speech = constructor();
   if (!Speech) return 'missing';
   const probe = new Speech();
@@ -55,6 +76,8 @@ const errorMessages: Record<string, string> = {
 
 export class LocalCaptioner {
   private recognition: RecognitionLike | null = null;
+  private nativeListeners: PluginListenerHandle[] = [];
+  private native = false;
   private intentionalStop = false;
 
   constructor(
@@ -64,6 +87,28 @@ export class LocalCaptioner {
   ) {}
 
   async start(language: string): Promise<void> {
+    if (usesNativeAndroidBridge()) {
+      const status = await NativeSpeech.getStatus();
+      if (!status.available) throw new Error(status.reason ?? 'On-device captions are unavailable on this Android device.');
+      this.native = true;
+      this.intentionalStop = false;
+      this.nativeListeners = [
+        await NativeSpeech.addListener('caption', ({ text, final }) => {
+          if (text.trim()) this.onCaption(text.trim(), final);
+        }),
+        await NativeSpeech.addListener('error', ({ message }) => {
+          if (!this.intentionalStop) this.onError(message);
+        })
+      ];
+      try {
+        await NativeSpeech.start({ language });
+      } catch (error) {
+        this.removeNativeListeners();
+        this.native = false;
+        throw error;
+      }
+      return;
+    }
     const Speech = constructor();
     if (!Speech) throw new Error('Live captions are not available in this browser. Use current Chrome on Android.');
     const recognition = new Speech();
@@ -106,7 +151,26 @@ export class LocalCaptioner {
 
   stop(): void {
     this.intentionalStop = true;
+    if (this.native) {
+      void NativeSpeech.stop();
+      this.removeNativeListeners();
+      this.native = false;
+      return;
+    }
     this.recognition?.stop();
     this.recognition = null;
+  }
+
+  async vibrate(pattern: number[]): Promise<void> {
+    if (usesNativeAndroidBridge()) {
+      try { await NativeSpeech.vibrate({ pattern }); } catch { /* A visual cue still works if hardware haptics fail. */ }
+      return;
+    }
+    if ('vibrate' in navigator) navigator.vibrate(pattern);
+  }
+
+  private removeNativeListeners(): void {
+    for (const listener of this.nativeListeners) void listener.remove();
+    this.nativeListeners = [];
   }
 }

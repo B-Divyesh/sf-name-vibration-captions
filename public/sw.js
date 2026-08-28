@@ -1,4 +1,5 @@
-const VERSION = 'name-tap-shell-v1';
+// Replaced during every production build with the content-derived release id.
+const VERSION = 'name-tap-shell-__BUILD_VERSION__';
 const CORE = ['/', '/offline.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/assets/name-tap-hero-720.webp', '/assets/name-tap-hero-1200.webp'];
 
 self.addEventListener('install', (event) => {
@@ -9,7 +10,6 @@ self.addEventListener('install', (event) => {
     const builtAssets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((match) => match[1]);
     await cache.put('/', response);
     await cache.addAll([...new Set([...CORE.slice(1), ...builtAssets])]);
-    await self.skipWaiting();
   })());
 });
 
@@ -21,6 +21,10 @@ self.addEventListener('activate', (event) => {
     const clients = await self.clients.matchAll({ type: 'window' });
     clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED', version: VERSION }));
   })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

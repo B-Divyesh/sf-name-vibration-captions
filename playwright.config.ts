@@ -15,5 +15,8 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000
   },
-  projects: [{ name: 'mobile-chromium', use: { ...devices['Pixel 5'] } }]
+  projects: [
+    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } },
+    { name: 'mobile-chromium', use: { ...devices['Pixel 5'], viewport: { width: 390, height: 844 } } }
+  ]
 });

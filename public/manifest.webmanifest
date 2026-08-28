@@ -3,7 +3,7 @@
   "name": "Name Tap — private phrase alerts",
   "short_name": "Name Tap",
   "description": "Feel a private cue when your name or chosen phrase is heard in on-device captions.",
-  "start_url": "/?source=pwa&v=1",
+  "start_url": "/?source=pwa&v=__BUILD_VERSION__",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

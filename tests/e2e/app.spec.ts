@@ -52,3 +52,34 @@ test('app shell reloads offline after installation', async ({ page, context }) =
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Feel your name');
   await expect(page.locator('body')).toContainText('Offline');
 });
+
+test('rejects malformed imports without persisting a broken render state', async ({ page }) => {
+  const pageErrors: Error[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error));
+  await page.goto('/');
+  await page.locator('#import-file').setInputFiles({
+    name: 'broken-settings.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({
+      format: 'name-tap-settings',
+      settings: { phrases: [{ id: 'bad', label: 'Broken', variants: 'string', pattern: 'tap', createdAt: 1 }] }
+    }))
+  });
+  await expect(page.getByRole('alert')).toContainText('invalid phrase data');
+  await expect(page.getByLabel('Phrase and spelling variants')).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel('Phrase and spelling variants')).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test('ships a content-versioned service worker and install start URL', async ({ page }) => {
+  await page.goto('/');
+  const [serviceWorker, manifest] = await Promise.all([
+    page.request.get('/sw.js').then((response) => response.text()),
+    page.request.get('/manifest.webmanifest').then((response) => response.json() as Promise<{ start_url: string }>)
+  ]);
+  const version = serviceWorker.match(/name-tap-shell-([a-f0-9]{12})/)?.[1];
+  expect(version).toBeTruthy();
+  expect(serviceWorker).not.toContain('__BUILD_VERSION__');
+  expect(manifest.start_url).toContain(`v=${version}`);
+});

@@ -31,6 +31,7 @@ interface AppState {
   lastMatch: Phrase | null;
   cueActive: boolean;
   removed: { phrase: Phrase; index: number } | null;
+  updateReady: ServiceWorkerRegistration | null;
 }
 
 let state: AppState;
@@ -38,18 +39,20 @@ let captioner: LocalCaptioner | null = null;
 const lastAlertAt = new Map<string, number>();
 
 async function startApp(): Promise<void> {
+  const loaded = await loadSettings().catch(() => ({ settings: { ...defaultSettings }, recovered: true }));
   state = {
-    settings: await loadSettings().catch(() => defaultSettings),
+    settings: loaded.settings,
     license: initialLicenseState(),
     stage: 'setup',
     consent: false,
     online: navigator.onLine,
-    notice: '',
+    notice: loaded.recovered ? 'Saved settings were invalid and were reset. You can add your phrases again.' : '',
     error: '',
     captions: [],
     lastMatch: null,
     cueActive: false,
-    removed: null
+    removed: null,
+    updateReady: null
   };
 
   render();
@@ -245,7 +248,7 @@ function render(): void {
   const scrollY = window.scrollY;
   app.innerHTML = state.stage === 'listening'
     ? listeningMarkup()
-    : `${headerMarkup()}${setupMarkup()}${footerMarkup()}<div class="toast ${state.notice ? 'show' : ''}" role="status" aria-live="polite"><span>${escapeHtml(state.notice)}</span>${state.removed ? '<button type="button" data-action="undo-remove">Undo</button>' : ''}</div>`;
+    : `${headerMarkup()}${setupMarkup()}${footerMarkup()}<div class="toast ${state.notice ? 'show' : ''}" role="status" aria-live="polite"><span>${escapeHtml(state.notice)}</span>${state.removed ? '<button type="button" data-action="undo-remove">Undo</button>' : ''}${state.updateReady ? '<button type="button" data-action="apply-update">Update now</button>' : ''}</div>`;
   if (state.stage !== 'listening' && scrollY > 0) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 
@@ -261,6 +264,7 @@ function bindEvents(): void {
     if (action === 'test') testPhrase(button.dataset.id ?? '');
     if (action === 'export') exportSettings(state.settings);
     if (action === 'remove-license') { state.license = removeLicense(); render(); }
+    if (action === 'apply-update') applyUpdate();
   });
 
   app.addEventListener('submit', (event) => {
@@ -405,9 +409,12 @@ function handleCaption(text: string, final: boolean): void {
 function pulse(phrase: Phrase): void {
   state.lastMatch = phrase;
   state.cueActive = state.settings.visualCue;
-  if (state.settings.hapticCue && 'vibrate' in navigator) {
+  if (state.settings.hapticCue) {
     const patterns: Record<HapticPattern, number | number[]> = { tap: [220, 90, 320], knock: [120, 80, 120], urgent: [180, 80, 180, 80, 360] };
-    navigator.vibrate(patterns[phrase.pattern]);
+    const pattern = patterns[phrase.pattern];
+    const values = Array.isArray(pattern) ? pattern : [pattern];
+    if (captioner) void captioner.vibrate(values);
+    else if ('vibrate' in navigator) navigator.vibrate(values);
   }
   window.setTimeout(() => {
     state.cueActive = false;
@@ -445,12 +452,19 @@ function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator)) return;
   const register = () => {
     void navigator.serviceWorker.register('/sw.js').then((registration) => {
+      const announceUpdate = () => {
+        if (registration.waiting && navigator.serviceWorker.controller && state) {
+          state.updateReady = registration;
+          state.notice = 'A Name Tap update is ready.';
+          render();
+        }
+      };
+      announceUpdate();
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         worker?.addEventListener('statechange', () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller && state) {
-            state.notice = 'A Name Tap update is ready. It will apply next time you open the app.';
-            render();
+            announceUpdate();
           }
         });
       });
@@ -460,4 +474,14 @@ function registerServiceWorker(): void {
   };
   if (document.readyState === 'complete') register();
   else window.addEventListener('load', register, { once: true });
+}
+
+function applyUpdate(): void {
+  const registration = state.updateReady;
+  if (!registration?.waiting) return;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!reloaded) { reloaded = true; window.location.reload(); }
+  }, { once: true });
+  registration.waiting.postMessage({ type: 'SKIP_WAITING' });
 }
