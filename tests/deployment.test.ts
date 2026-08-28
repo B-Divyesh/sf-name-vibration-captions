@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 describe('static deployment policy', () => {
   const config = JSON.parse(readFileSync(resolve('public/staticwebapp.config.json'), 'utf8')) as {
     globalHeaders: Record<string, string>;
+    mimeTypes: Record<string, string>;
     routes: Array<{ route: string; headers: Record<string, string> }>;
   };
 
@@ -16,6 +17,7 @@ describe('static deployment policy', () => {
 
   it('marks hashed assets immutable and the manifest with its correct media type', () => {
     expect(config.routes.find((route) => route.route === '/assets/*')?.headers['Cache-Control']).toContain('immutable');
+    expect(config.mimeTypes['.webmanifest']).toBe('application/manifest+json');
     expect(config.routes.find((route) => route.route === '/manifest.webmanifest')?.headers['Content-Type']).toBe('application/manifest+json');
   });
 });

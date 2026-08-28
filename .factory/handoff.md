@@ -10,7 +10,7 @@ Repaired: 2026-08-28
 2. **Safe settings imports and recovery:** Every phrase and settings field is now validated before import or render. The verifier’s malformed `variants: "string"` payload is rejected with an announced recoverable error and is never saved. Invalid legacy IndexedDB/localStorage data is discarded and the app starts with clean settings plus a recovery notice.
 3. **Versioned offline updates:** The build injects a content-derived release ID into the service-worker cache and the manifest start URL. A waiting update exposes an in-app **Update now** action which sends `SKIP_WAITING`; cache activation purges prior Name Tap shell caches and claims clients.
 4. **Performance:** Removed the fixed viewport `feTurbulence` paint path. The signal-board visual system, original hero, contrast, motion policy, and layout remain intact.
-5. **Static host hardening:** Added `public/staticwebapp.config.json`, copied to `dist/`, with a self-only CSP, `frame-ancestors 'none'`/`X-Frame-Options: DENY`, microphone-only Permissions-Policy, no-sniff/referrer headers, immutable hashed asset caching, no-cache service worker/manifest, and `application/manifest+json` for the manifest.
+5. **Static host hardening:** Added `public/staticwebapp.config.json`, copied to `dist/`, with a self-only CSP, `frame-ancestors 'none'`/`X-Frame-Options: DENY`, microphone-only Permissions-Policy, no-sniff/referrer headers, immutable hashed asset caching, no-cache service worker/manifest, and the Static Web Apps `.webmanifest` MIME mapping (`application/manifest+json`).
 
 ## Exact regression coverage
 
@@ -34,12 +34,14 @@ All commands ran from `/work/repo` on 2026-08-28.
 | Lighthouse mobile, production preview | PASS — Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 1.1 s, LCP 1.5 s, TBT 0 ms, CLS 0 |
 | `npm run cap:sync` | PASS — final built PWA synced to Capacitor Android assets |
 | `ANDROID_HOME=/opt/android-sdk JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew test assembleDebug` | PASS — Android unit tests and debug APK assembly |
+| Live `verify-url.sh https://name-vibration-captions.sociobot.in/ …` | PASS — HTTP 200, 690 ms load, 0 console/page errors; title/lang/one h1/main/alt checks pass |
+| Live response policy | PASS — CSP, `Permissions-Policy: microphone=(self)`, `X-Frame-Options: DENY`; hashed JS is immutable and `/manifest.webmanifest` is `application/manifest+json` |
 
 Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk` (4.5 MB, SHA-256 `79b7b176299f67eeaf30f4f777d903e7fa56b320585aaa4aa059a2105f91df90`). It is a local build artifact and is intentionally not committed.
 
 ## Deploy and remaining hardware evidence
 
-The static deployment payload is `dist/`, including `staticwebapp.config.json`; publishing is performed by the factory static deployment configuration after this repair is pushed. Verify the live host serves the configured CSP, Permissions-Policy, framing headers, immutable `/assets/*` cache policy, and manifest media type after propagation.
+Deployed to <https://name-vibration-captions.sociobot.in> with the factory static deployment configuration (Azure Static Web Apps deployment `99ac4b32-80ad-4f51-8610-8671840f4732`). The live response serves `assets/index-B2yzgzdZ.js`, confirming the repaired bundle is active.
 
 No physical Android device is available in this worker. The native bridge and debug APK compile successfully, but final hardware acceptance still needs an Android 12+ device with an installed offline recognizer/language pack: grant microphone permission, start a consented session, speak a configured phrase, and confirm temporary captions plus the physical vibration/visual cue. No recording, remote-ASR fallback, or transcript persistence was added.
 
