@@ -1,4 +1,30 @@
-# Name Tap polish round 2 handoff
+# Name Tap review round 3 handoff
+
+Work order: `name-vibration-captions-review-3`
+
+## Delivered
+
+- Performed an adversarial cold-read review of the deployed site at 390 px and desktop.
+- Wrote `.factory/review-3.md`; verdict: **PASS**, with zero findings.
+- Did not modify product code or assets.
+
+## Verification
+
+- Fresh clean clone: `/tmp/name-tap-review3.5SSa1o` at `67f8ac3`.
+- `npm ci`: passed (0 vulnerabilities reported).
+- `npm test`: passed, 21/21.
+- `npm run test:e2e`: passed, 50/50; every registered claim tag was exercised.
+- `npm run build` and `npm run lint`: passed.
+- `npm run audit:live`: passed.
+- Manual fresh-context checks confirmed the first-screen message, one-click matched demo, reset/isolation, no off-origin demo traffic, offline claim coverage, titles/metadata, route/404 status, and links.
+
+## Known gaps and next step
+
+No web review finding remains. Physical Android-device acceptance is still a hardware validation task, not a claim accepted by this review.
+
+---
+
+# Prior polish round 2 handoff
 
 Work order: `name-vibration-captions-polish-2`
 
