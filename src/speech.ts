@@ -61,7 +61,8 @@ function constructor(): RecognitionConstructor | undefined {
 }
 
 function unsafeAutomatedNativeProbe(Speech: RecognitionConstructor): boolean {
-  return navigator.webdriver === true && Boolean(Speech.available) && Function.prototype.toString.call(Speech.available).includes('[native code]');
+  const automated = navigator.webdriver === true || /HeadlessChrome|Chrome-Lighthouse/.test(navigator.userAgent);
+  return automated && Boolean(Speech.available) && Function.prototype.toString.call(Speech.available).includes('[native code]');
 }
 
 export async function probeLocalSpeechSupport(language: string): Promise<Exclude<LocalSpeechSupport, 'checking'>> {
