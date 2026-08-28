@@ -3,6 +3,7 @@
 Work order: `name-vibration-captions-repair-1`
 Base verifier report: `8242664778728614c0685a2a57ff6e878d3d480d` (candidate `df35f453057671ee5bf7aa0290adb8fa6e9a8af2`)
 Repaired: 2026-08-28
+Repair commits: `01bbfaf` (core repair), `e936b20` (manifest MIME fix)
 
 ## Release-blocking repairs
 
