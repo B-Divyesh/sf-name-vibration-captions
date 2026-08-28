@@ -21,6 +21,16 @@
     {
       "route": "/sw.js",
       "headers": { "Cache-Control": "no-cache" }
+    },
+    {
+      "route": "/404",
+      "rewrite": "/404.html",
+      "statusCode": 404
+    },
+    {
+      "route": "/404/",
+      "rewrite": "/404.html",
+      "statusCode": 404
     }
   ],
   "responseOverrides": {

@@ -27,6 +27,7 @@ describe('static deployment policy', () => {
     expect(readFileSync(resolve('dist/sw.js'), 'utf8')).not.toContain('__BUILD_VERSION__');
     expect(config).toHaveProperty('responseOverrides.404.rewrite', '/404.html');
     expect(config).not.toHaveProperty('navigationFallback');
+    expect(config.routes.find((route) => route.route === '/404')?.statusCode).toBe(404);
   });
 
   it('@claim:asset-provenance keeps the generated source, prompt, and public derivative', () => {
