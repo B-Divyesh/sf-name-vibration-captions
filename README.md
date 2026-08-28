@@ -39,6 +39,12 @@ Playwright 1.58.2 runs desktop and 390 px mobile checks. The suite checks keyboa
 
 Run each `test` command in `.factory/claims.json` from a clean checkout. Each claim test starts from the sample where browser behavior is required.
 
+After deployment, run the cold production audit:
+
+```sh
+npm run audit:live
+```
+
 ## Android project
 
 `android/` is the Capacitor project. Its application ID is `in.sociobot.namevibrationcaptions`. It declares microphone and vibration access.
