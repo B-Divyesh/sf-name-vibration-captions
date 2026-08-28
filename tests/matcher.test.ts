@@ -6,6 +6,12 @@ const maya: Phrase = { id: '1', label: 'Maya', variants: ['Maya', 'Maia'], patte
 const needHelp: Phrase = { id: '2', label: 'I need help', variants: ['I need help'], pattern: 'urgent', createdAt: 2 };
 
 describe('phrase matching', () => {
+  it('@claim:matcher matches explicit, edit-distance, and phonetic cases without the published false positive', () => {
+    expect(findMatch('Hey Maia', [maya])?.id).toBe('1');
+    expect(findMatch('Meya are you there', [maya])?.id).toBe('1');
+    expect(phonetic('Steven')).toBe(phonetic('Stephen'));
+    expect(findMatch('May I come in', [maya])).toBeUndefined();
+  });
   it('normalizes accents, punctuation, and spacing', () => expect(normalize('  HÉLLO,   Maya! ')).toBe('hello maya'));
   it('finds a whole phrase inside captions', () => expect(findMatch('Could Maya come here?', [maya])?.id).toBe('1'));
   it('matches an explicit spelling variant', () => expect(findMatch('Hey Maia', [maya])?.id).toBe('1'));

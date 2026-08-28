@@ -23,8 +23,9 @@
       "headers": { "Cache-Control": "no-cache" }
     }
   ],
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/sw.js", "/manifest.webmanifest", "/offline.html"]
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/404.html"
+    }
   }
 }

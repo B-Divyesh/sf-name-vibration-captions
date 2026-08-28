@@ -1,6 +1,6 @@
 // Replaced during every production build with the content-derived release id.
 const VERSION = 'name-tap-shell-__BUILD_VERSION__';
-const CORE = ['/', '/offline.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/assets/name-tap-hero-720.webp', '/assets/name-tap-hero-1200.webp'];
+const CORE = ['/', '/demo/', '/privacy/', '/terms/', '/404.html', '/offline.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/apple-touch-icon.png', '/assets/name-tap-hero-720.webp', '/assets/name-tap-hero-1200.webp', '/assets/name-tap-social.webp'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -42,7 +42,10 @@ self.addEventListener('fetch', (event) => {
         return response;
       } catch {
         const cache = await caches.open(VERSION);
-        return (await cache.match(request)) ?? (await cache.match('/')) ?? (await cache.match('/offline.html'));
+        const known = new Set(['/', '/demo', '/demo/', '/privacy', '/privacy/', '/terms', '/terms/']);
+        if (!known.has(url.pathname)) return (await cache.match('/404.html')) ?? (await cache.match('/offline.html'));
+        const fallback = url.pathname.startsWith('/demo') ? '/demo/' : url.pathname === '/' ? '/' : `${url.pathname.replace(/\/$/, '')}/`;
+        return (await cache.match(request)) ?? (await cache.match(fallback)) ?? (await cache.match('/offline.html'));
       }
     })());
     return;

@@ -6,7 +6,7 @@ const nativePlugin = readFileSync(resolve('android/app/src/main/java/in/sociobot
 const mainActivity = readFileSync(resolve('android/app/src/main/java/in/sociobot/namevibrationcaptions/MainActivity.java'), 'utf8');
 
 describe('Android local speech bridge', () => {
-  it('registers a native bridge that uses only Android’s on-device recognizer', () => {
+  it('@claim:native-caption-bridge registers a bridge that uses only Android’s on-device recognizer', () => {
     expect(mainActivity).toContain('registerPlugin(LocalSpeechPlugin.class)');
     expect(nativePlugin).toContain('createOnDeviceSpeechRecognizer');
     expect(nativePlugin).toContain('EXTRA_PREFER_OFFLINE, true');
@@ -14,8 +14,13 @@ describe('Android local speech bridge', () => {
     expect(nativePlugin).toContain('RECORD_AUDIO');
   });
 
-  it('emits caption events and provides an Android-native vibration cue', () => {
+  it('@claim:android-package includes caption events, native vibration, permissions, and the expected application ID', () => {
     expect(nativePlugin).toContain('notifyListeners("caption"');
     expect(nativePlugin).toContain('VibrationEffect.createWaveform');
+    const build = readFileSync(resolve('android/app/build.gradle'), 'utf8');
+    const manifest = readFileSync(resolve('android/app/src/main/AndroidManifest.xml'), 'utf8');
+    expect(build).toContain('applicationId "in.sociobot.namevibrationcaptions"');
+    expect(manifest).toContain('android.permission.RECORD_AUDIO');
+    expect(manifest).toContain('android.permission.VIBRATE');
   });
 });

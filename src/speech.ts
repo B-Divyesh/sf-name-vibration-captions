@@ -62,8 +62,7 @@ export function localSpeechSupport(): 'ready' | 'missing' | 'unknown' {
   if (usesNativeAndroidBridge()) return 'ready';
   const Speech = constructor();
   if (!Speech) return 'missing';
-  const probe = new Speech();
-  return 'processLocally' in probe ? 'ready' : 'unknown';
+  return 'processLocally' in Speech.prototype ? 'ready' : 'unknown';
 }
 
 const errorMessages: Record<string, string> = {

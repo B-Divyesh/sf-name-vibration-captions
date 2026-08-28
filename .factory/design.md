@@ -54,4 +54,6 @@ Negative list: text, letters, numbers, captions, logos, trademarks, brands, wate
 ### Provenance
 
 - `assets/src/name-tap-hero.png` and derived WebP: generated for this product with Azure OpenAI image generation (`factory-image`) on 2026-08-27. Prompt: “Editorial neo-brutalist still life, a single rugged generic smartphone face-up on a warm oatmeal recycled-paper workbench, abstract blank paper speech fragments moving toward the phone from the left, bold concentric tactile vibration blocks radiating from the phone's right edge, carbon-black rubber and slightly imperfect screen-printed ink, acid chartreuse signal blocks with one small sky-blue accent, orthographic overhead composition, direct studio light, hard compact shadows, landscape with generous empty field, physical cut-paper construction, high contrast, no people, no text, no letters, no numbers, no watermark, no logos, no brands, no UI screenshot, no gradients, no glossy 3D, no medical imagery.”
+- `public/assets/name-tap-social.webp`: a 1200 × 630 center crop made from the same original on 2026-08-28 for link previews.
+- `public/apple-touch-icon.png`: a 180 × 180 derivative of the authored `assets/src/app-icon.svg` icon system.
 - Original use and derivatives are licensed under this repository's MIT license. Generated imagery is disclosed in the footer.
