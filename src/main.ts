@@ -1,8 +1,7 @@
 import './style.css';
 import { findMatch } from './matcher';
-import { initialLicenseState, saveLicense, verifyLicense, type LicenseState } from './license';
 import { legalPage } from './legal';
-import { LocalCaptioner, localSpeechSupport } from './speech';
+import { LocalCaptioner, probeLocalSpeechSupport, type LocalSpeechSupport } from './speech';
 import { defaultSettings, exportSettings, loadSettings, parseSettingsFile, saveSettings } from './store';
 import type { CaptionLine, HapticPattern, Phrase, Settings } from './types';
 
@@ -10,7 +9,7 @@ const appElement = document.querySelector<HTMLDivElement>('#app');
 if (!appElement) throw new Error('App root was not found.');
 const app: HTMLDivElement = appElement;
 
-const BUILD_ID = '1.1.0-polish1';
+const BUILD_ID = '1.2.0-polish2';
 const SITE = 'https://name-vibration-captions.sociobot.in';
 const knownPaths = new Set(['/', '/demo', '/privacy', '/terms', '/404']);
 const demoPhrases: Phrase[] = [
@@ -20,8 +19,8 @@ const demoPhrases: Phrase[] = [
 
 interface AppState {
   settings: Settings;
-  license: LicenseState;
   stage: 'setup' | 'starting' | 'listening';
+  support: LocalSpeechSupport;
   consent: boolean;
   online: boolean;
   notice: string;
@@ -37,6 +36,7 @@ interface AppState {
 let state: AppState;
 let captioner: LocalCaptioner | null = null;
 let routePath = window.location.pathname.replace(/\/$/, '') || '/';
+let supportProbeVersion = 0;
 const lastAlertAt = new Map<string, number>();
 
 function demoRequested(): boolean {
@@ -54,18 +54,12 @@ async function initialize(): Promise<void> {
     : await loadSettings().catch(() => ({ settings: { ...defaultSettings, phrases: [] }, recovered: true }));
   state = {
     settings: loaded.settings,
-    license: demo ? { token: null, unlocked: false, checking: false, notice: '' } : initialLicenseState(),
-    stage: 'setup', consent: false, online: navigator.onLine,
+    stage: 'setup', support: 'checking', consent: false, online: navigator.onLine,
     notice: loaded.recovered ? 'Saved settings were invalid and were reset. Add your phrases again.' : '',
     error: '', captions: [], lastMatch: null, cueActive: false, removed: null, updateReady: null, demo
   };
   render(false);
-  if (!demo && state.license.token && navigator.onLine) {
-    state.license = { ...state.license, checking: true };
-    render();
-    state.license = await verifyLicense(state.license);
-    render();
-  }
+  if (routePath === '/' || routePath === '/demo') void refreshSupport(state.settings.language);
 }
 
 function escapeHtml(value: string): string {
@@ -76,7 +70,7 @@ function setMeta(path: string): void {
   const data: Record<string, [string, string]> = {
     '/': ['Name Tap — alerts when your phrase is spoken', 'For hard-of-hearing people who want a private vibration when local captions match a chosen phrase.'],
     '/demo': ['Demo — Name Tap', 'Try Name Tap with isolated sample phrases and captions. Nothing is saved.'],
-    '/privacy': ['Privacy — Name Tap', 'How Name Tap keeps phrases and temporary captions on your device.'],
+    '/privacy': ['Privacy — Name Tap', 'How Name Tap handles phrases, temporary captions, and web request logs.'],
     '/terms': ['Terms — Name Tap', 'Terms for using Name Tap as an assistive phrase alert.'],
     '/404': ['Page not found — Name Tap', 'This Name Tap page does not exist. Return home or try the sample.']
   };
@@ -98,14 +92,26 @@ function setMetaValue(selector: string, attribute: string, value: string): void 
 
 function phraseMarkup(phrase: Phrase): string {
   const alternatives = phrase.variants.slice(1).map(escapeHtml).join(', ');
-  return `<li class="phrase-row"><span class="phrase-grip" aria-hidden="true">●</span><span><strong>${escapeHtml(phrase.label)}</strong><small>${alternatives ? `Other spellings: ${alternatives}` : 'Checks similar-sounding caption text'}</small></span>${state.license.unlocked ? `<select class="pattern-select" id="pattern-${phrase.id}" data-id="${phrase.id}" aria-label="Vibration for ${escapeHtml(phrase.label)}"><option value="tap" ${phrase.pattern === 'tap' ? 'selected' : ''}>Tap</option><option value="knock" ${phrase.pattern === 'knock' ? 'selected' : ''}>Knock</option><option value="urgent" ${phrase.pattern === 'urgent' ? 'selected' : ''}>Urgent</option></select>` : ''}<button class="mini-button" type="button" data-action="test" data-id="${phrase.id}" aria-label="Test vibration for ${escapeHtml(phrase.label)}">Test vibration</button><button class="icon-button" type="button" data-action="remove" data-id="${phrase.id}" aria-label="Remove ${escapeHtml(phrase.label)}">×</button></li>`;
+  return `<li class="phrase-row"><span class="phrase-grip" aria-hidden="true">●</span><span><strong>${escapeHtml(phrase.label)}</strong><small>${alternatives ? `Other spellings: ${alternatives}` : 'Checks similar-sounding caption text'}</small></span><button class="mini-button" type="button" data-action="test" data-id="${phrase.id}" aria-label="Test vibration for ${escapeHtml(phrase.label)}">Test vibration</button><button class="icon-button" type="button" data-action="remove" data-id="${phrase.id}" aria-label="Remove ${escapeHtml(phrase.label)}">×</button></li>`;
 }
 
 function supportMarkup(): string {
-  const support = localSpeechSupport();
-  if (support === 'ready') return '<span class="support good" data-support="ready"><span aria-hidden="true">✓</span> Local captions are available</span>';
-  if (support === 'missing') return '<span class="support" data-support="missing"><span aria-hidden="true">!</span> Use current Chrome on Android for local captions</span>';
-  return '<span class="support" data-support="unknown"><span aria-hidden="true">!</span> This browser cannot confirm local captions</span>';
+  if (state.support === 'checking') return '<span class="support" data-support="checking"><span aria-hidden="true">…</span> Checking local captions…</span>';
+  if (state.support === 'ready') return '<span class="support good" data-support="ready"><span aria-hidden="true">✓</span> Local captions are available</span>';
+  if (state.support === 'downloadable') return '<span class="support" data-support="downloadable"><span aria-hidden="true">↓</span> Local captions need a language download</span>';
+  if (state.support === 'unavailable') return '<span class="support" data-support="unavailable"><span aria-hidden="true">!</span> Local captions are unavailable for this language</span>';
+  if (state.support === 'missing') return '<span class="support" data-support="missing"><span aria-hidden="true">!</span> Use current Chrome on Android for local captions</span>';
+  return '<span class="support" data-support="unknown"><span aria-hidden="true">?</span> This browser cannot confirm local captions</span>';
+}
+
+async function refreshSupport(language: string): Promise<void> {
+  const version = ++supportProbeVersion;
+  state.support = 'checking';
+  render();
+  const support = await probeLocalSpeechSupport(language);
+  if (version !== supportProbeVersion || state.settings.language !== language) return;
+  state.support = support;
+  render();
 }
 
 function demoBanner(): string {
@@ -113,16 +119,21 @@ function demoBanner(): string {
   return `<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><div><button type="button" data-action="reset-demo">Reset demo</button><button type="button" data-action="start-real">Start for real</button></div></aside>`;
 }
 
-function demoSample(): string {
+function demoSample(pageHeading = false): string {
   if (!state.demo) return '';
-  return `<section class="demo-sample section-width" id="sample" aria-labelledby="sample-title"><div class="sample-status"><span aria-hidden="true"></span> Sample session · local captions</div><h2 id="sample-title">Maya was heard</h2><div class="sample-caption" aria-label="Sample temporary captions"><p>Can Maia bring the blue folder?</p><strong>HEARD · MAYA</strong></div><p>The alternate spelling “Maia” matched the saved phrase “Maya.”</p><button class="start-button sample-replay" type="button" data-action="replay-demo"><span class="start-icon" aria-hidden="true">)))</span><span><strong>Replay sample alert</strong><small>Requests the tap pattern and flashes this board.</small></span></button></section>`;
+  const title = pageHeading
+    ? '<h1 id="sample-title" tabindex="-1">Maya was heard</h1>'
+    : '<h2 id="sample-title">Maya was heard</h2>';
+  return `<section class="demo-sample section-width" id="sample" aria-labelledby="sample-title"><div class="sample-status"><span aria-hidden="true"></span> Sample session · local captions</div>${title}<div class="sample-caption" aria-label="Sample temporary captions"><p>Can Maia bring the blue folder?</p><strong>HEARD · MAYA</strong></div><p>The alternate spelling “Maia” matched the saved phrase “Maya.”</p><button class="start-button sample-replay" type="button" data-action="replay-demo"><span class="start-icon" aria-hidden="true">)))</span><span><strong>Replay sample alert</strong><small>Requests the vibration pattern and flashes this board.</small></span></button></section>`;
 }
 
 function setupMarkup(): string {
-  const limit = state.license.unlocked ? Infinity : 3;
-  const atLimit = state.settings.phrases.length >= limit;
-  return `<main id="main"><section class="hero section-width" aria-labelledby="hero-title"><div class="hero-copy"><p class="eyebrow"><span class="live-square" aria-hidden="true"></span> Private name alert</p><h1 id="hero-title" tabindex="-1">Feel a tap when someone says your name</h1><p class="lede">For hard-of-hearing people who want to follow group conversations without watching captions.</p><div class="hero-actions"><a class="primary-link" href="?demo=1">Try it with sample data</a><span>Loads a sample caption and name alert.</span></div><ul class="plain-facts"><li>Speech becomes local captions on your device.</li><li>No recording or account.</li><li>Three phrases are free.</li></ul></div><figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/name-tap-hero-720.webp"><img src="/assets/name-tap-hero-1200.webp" width="1200" height="800" alt="A rugged phone receives speech shapes and sends out bold vibration waves" fetchpriority="high" decoding="async"></picture><figcaption><span>Speech nearby</span><span>Your private alert</span></figcaption></figure></section>${demoSample()}
-    <section class="workbench" id="setup" aria-labelledby="setup-title"><div class="section-width setup-grid"><div class="setup-main"><p class="step-label">1 / Choose a phrase</p><h2 id="setup-title">Choose a name or urgent phrase</h2><p class="section-intro">Add a name, nickname, or urgent phrase. Add other spellings after commas.</p><form class="add-form" id="phrase-form"><label for="phrase">Name or phrase, with other spellings</label><div class="field-action"><input id="phrase" name="phrase" type="text" maxlength="100" autocomplete="off" placeholder="Maya, Maia" required ${atLimit ? 'disabled' : ''} aria-describedby="phrase-help"><button class="square-button" type="submit" ${atLimit ? 'disabled' : ''}>Add phrase</button></div><small id="phrase-help">The first entry becomes the label. Phrase settings stay on this device.</small></form>${state.settings.phrases.length ? `<ul class="phrase-list" aria-label="Saved phrases">${state.settings.phrases.map(phraseMarkup).join('')}</ul>` : `<div class="empty-state"><span class="empty-mark" aria-hidden="true">+</span><p><strong>No phrases yet.</strong><br>Add the phrase you most need to notice.</p></div>`}<div class="capacity"><span>${state.settings.phrases.length} / ${state.license.unlocked ? '∞' : '3'} phrases</span><span>${state.license.unlocked ? 'Lifetime purchase active' : 'Three phrases included'}</span></div></div>
+  const atLimit = state.settings.phrases.length >= 3;
+  const firstScreen = state.demo
+    ? demoSample(true)
+    : '<section class="hero section-width" aria-labelledby="hero-title"><div class="hero-copy"><p class="eyebrow"><span class="live-square" aria-hidden="true"></span> Private name alert</p><h1 id="hero-title" tabindex="-1">Feel a tap when someone says your name</h1><p class="lede">For hard-of-hearing people who want to follow group conversations without watching captions.</p><div class="hero-actions"><a class="primary-link" href="?demo=1">Try it with sample data</a><span>Loads a sample caption and name alert.</span></div><ul class="plain-facts"><li>Speech becomes local captions on your device.</li><li>No recording or account.</li><li>Three phrases are free.</li></ul></div><figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/name-tap-hero-720.webp"><img src="/assets/name-tap-hero-1200.webp" width="1200" height="800" alt="A rugged phone receives speech shapes and sends out bold vibration waves" fetchpriority="high" decoding="async"></picture><figcaption><span>Speech nearby</span><span>Your private alert</span></figcaption></figure></section>';
+  return `<main id="main" class="${state.demo ? 'demo-route' : ''}">${firstScreen}
+    <section class="workbench" id="setup" aria-labelledby="setup-title"><div class="section-width setup-grid"><div class="setup-main"><p class="step-label">1 / Choose a phrase</p><h2 id="setup-title">Choose a name or urgent phrase</h2><p class="section-intro">Add a name, nickname, or urgent phrase. Add other spellings after commas.</p><form class="add-form" id="phrase-form"><label for="phrase">Name or phrase, with other spellings</label><div class="field-action"><input id="phrase" name="phrase" type="text" maxlength="100" autocomplete="off" placeholder="Maya, Maia" required ${atLimit ? 'disabled' : ''} aria-describedby="phrase-help"><button class="square-button" type="submit" ${atLimit ? 'disabled' : ''}>Add phrase</button></div><small id="phrase-help">The first entry becomes the label. Phrase settings stay on this device.</small></form>${state.settings.phrases.length ? `<ul class="phrase-list" aria-label="Saved phrases">${state.settings.phrases.map(phraseMarkup).join('')}</ul>` : `<div class="empty-state"><span class="empty-mark" aria-hidden="true">+</span><p><strong>No phrases yet.</strong><br>Add the phrase you most need to notice.</p></div>`}<div class="capacity"><span>${state.settings.phrases.length} / 3 phrases</span><span>Three phrases included</span></div></div>
       <aside class="session-board" aria-labelledby="listen-title"><p class="step-label">2 / Start a session</p><h2 id="listen-title">Start local listening</h2><label for="language">Conversation language</label><select id="language">${languageOptions(state.settings.language)}</select><div class="privacy-note"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5z"/></svg><p><strong>Audio is not recorded.</strong> Name Tap turns speech into text on this device. It stops if local captions are unavailable.</p></div><label class="consent-check"><input id="consent" type="checkbox" ${state.consent ? 'checked' : ''}><span>I told people nearby that captions are on, and I follow local consent laws.</span></label><button class="start-button" type="button" data-action="start" ${!state.consent || !state.settings.phrases.length || state.stage === 'starting' ? 'disabled' : ''}><span class="start-icon" aria-hidden="true">${state.stage === 'starting' ? '…' : '▶'}</span><span><strong>${state.stage === 'starting' ? 'Preparing local captions…' : 'Start listening'}</strong><small>${state.settings.phrases.length ? `Watching for ${state.settings.phrases.length} phrase${state.settings.phrases.length === 1 ? '' : 's'}` : 'Add a phrase first'}</small></span></button>${supportMarkup()}${state.error ? `<div class="error-box" role="alert"><strong>Couldn’t start.</strong> ${escapeHtml(state.error)}</div>` : ''}</aside></div></section>
     <section class="how section-width" id="how" aria-labelledby="how-title"><p class="step-label">How it works</p><h2 id="how-title">Get an alert without watching captions</h2><ol class="how-list"><li><span>1</span><div><h3>Choose your phrases</h3><p>Add three phrases and the alternate spellings you know.</p></div></li><li><span>2</span><div><h3>Start local captions</h3><p>Listening starts only after you consent. Captions disappear when you stop.</p></div></li><li><span>3</span><div><h3>Feel the match</h3><p>Name Tap checks each caption against your phrases. Confirm important instructions yourself.</p></div></li></ol></section>${settingsMarkup()}<section class="limits section-width" aria-labelledby="limits-title"><p class="step-label">Clear limits</p><h2 id="limits-title">Not a recorder or emergency service</h2><p>Name Tap does not identify speakers. Speech recognition can miss or falsely match words.</p></section></main>`;
 }
@@ -133,7 +144,7 @@ function listeningMarkup(): string {
 }
 
 function settingsMarkup(): string {
-  return `<section class="settings-zone" id="settings" aria-labelledby="settings-title"><div class="section-width settings-grid"><div><p class="step-label">Your controls</p><h2 id="settings-title">Choose your alerts</h2><p>Phrase settings stay on this device. Temporary captions never enter the settings file.</p></div><div class="settings-panel"><label class="toggle-row"><span><strong>Vibration alert</strong><small>Requests your device vibration motor</small></span><input id="haptic-toggle" type="checkbox" role="switch" ${state.settings.hapticCue ? 'checked' : ''}><i aria-hidden="true"></i></label><label class="toggle-row"><span><strong>Full-screen visual alert</strong><small>Shows a high-contrast phrase alert</small></span><input id="visual-toggle" type="checkbox" role="switch" ${state.settings.visualCue ? 'checked' : ''}><i aria-hidden="true"></i></label><div class="data-row"><span><strong>Move your saved phrases</strong><small>Temporary captions are excluded</small></span><div><button type="button" class="mini-button" data-action="export">Export settings</button><label class="mini-button file-button">Import settings<input id="import-file" type="file" accept="application/json"></label></div></div></div></div></section>`;
+  return `<section class="settings-zone" id="settings" aria-labelledby="settings-title"><div class="section-width settings-grid"><div><p class="step-label">Your controls</p><h2 id="settings-title">Choose your alerts</h2><p>Phrase settings stay on this device. Temporary captions never enter the settings file.</p></div><div class="settings-panel"><label class="toggle-row"><span><strong>Vibration alert</strong><small>Requests your device vibration motor</small></span><input id="haptic-toggle" type="checkbox" role="switch" ${state.settings.hapticCue ? 'checked' : ''}><i aria-hidden="true"></i></label><label class="toggle-row"><span><strong>High-contrast visual alert</strong><small>Flashes the matched phrase in black and bright green</small></span><input id="visual-toggle" type="checkbox" role="switch" ${state.settings.visualCue ? 'checked' : ''}><i aria-hidden="true"></i></label><div class="data-row"><span><strong>Move your saved phrases</strong><small>Temporary captions are excluded</small></span><div><button type="button" class="mini-button" data-action="export">Export settings</button><label class="mini-button file-button">Import settings<input id="import-file" type="file" accept="application/json"></label></div></div></div></div></section>`;
 }
 
 function languageOptions(selected: string): string {
@@ -184,8 +195,8 @@ function bindEvents(): void {
     const action = button.dataset.action;
     if (action === 'start') void startListening(); if (action === 'stop') stopListening(); if (action === 'remove') void removePhrase(button.dataset.id ?? ''); if (action === 'undo-remove') void undoRemove(); if (action === 'test') testPhrase(button.dataset.id ?? ''); if (action === 'replay-demo') replayDemo(); if (action === 'reset-demo') void initialize(); if (action === 'start-real') navigate(new URL('/', window.location.origin)); if (action === 'export') exportSettings(state.settings); if (action === 'apply-update') applyUpdate();
   });
-  app.addEventListener('submit', (event) => { event.preventDefault(); const form = event.target as HTMLFormElement; if (form.id === 'phrase-form') void addPhrase(new FormData(form).get('phrase')?.toString() ?? ''); if (form.id === 'license-form') void restoreLicense(new FormData(form).get('license')?.toString() ?? ''); });
-  app.addEventListener('change', (event) => { const input = event.target as HTMLInputElement | HTMLSelectElement; if (input.id === 'consent') { state.consent = (input as HTMLInputElement).checked; render(); } if (input.id === 'language') void updateSetting({ language: input.value }); if (input.id === 'haptic-toggle') void updateSetting({ hapticCue: (input as HTMLInputElement).checked }); if (input.id === 'visual-toggle') void updateSetting({ visualCue: (input as HTMLInputElement).checked }); if (input.classList.contains('pattern-select')) void updatePattern(input.dataset.id ?? '', input.value as HapticPattern); if (input.id === 'import-file') void importFile((input as HTMLInputElement).files?.[0]); });
+  app.addEventListener('submit', (event) => { event.preventDefault(); const form = event.target as HTMLFormElement; if (form.id === 'phrase-form') void addPhrase(new FormData(form).get('phrase')?.toString() ?? ''); });
+  app.addEventListener('change', (event) => { const input = event.target as HTMLInputElement | HTMLSelectElement; if (input.id === 'consent') { state.consent = (input as HTMLInputElement).checked; render(); } if (input.id === 'language') void changeLanguage(input.value); if (input.id === 'haptic-toggle') void updateSetting({ hapticCue: (input as HTMLInputElement).checked }); if (input.id === 'visual-toggle') void updateSetting({ visualCue: (input as HTMLInputElement).checked }); if (input.id === 'import-file') void importFile((input as HTMLInputElement).files?.[0]); });
   window.addEventListener('popstate', () => { routePath = window.location.pathname.replace(/\/$/, '') || '/'; void initialize().then(focusRouteHeading); });
   window.addEventListener('online', () => { state.online = true; render(); }); window.addEventListener('offline', () => { state.online = false; state.notice = 'The app is offline. Saved phrases and the sample still work.'; render(); });
 }
@@ -193,11 +204,12 @@ function bindEvents(): void {
 function focusRouteHeading(): void { const heading = document.querySelector<HTMLElement>('h1'); heading?.focus(); const status = document.querySelector<HTMLElement>('#route-status'); if (status && heading) status.textContent = `${heading.textContent ?? ''} page loaded`; }
 async function persist(): Promise<void> { if (!state.demo) await saveSettings(state.settings); }
 async function updateSetting(change: Partial<Settings>): Promise<void> { state.settings = { ...state.settings, ...change, updatedAt: Date.now() }; await persist(); render(); }
+async function changeLanguage(language: string): Promise<void> { await updateSetting({ language }); void refreshSupport(language); }
 
 async function addPhrase(value: string): Promise<void> {
   const variants = value.split(',').map((item) => item.trim()).filter(Boolean);
   if (!variants.length) { state.error = 'Type a name or phrase before adding it.'; render(); return; }
-  if (!state.license.unlocked && state.settings.phrases.length >= 3) { state.notice = 'The free list is full. Remove one phrase before adding another.'; render(); return; }
+  if (state.settings.phrases.length >= 3) { state.notice = 'The phrase list is full. Remove one phrase before adding another.'; render(); return; }
   const duplicate = state.settings.phrases.some((phrase) => phrase.variants.some((variant) => variants.includes(variant))); if (duplicate) { state.notice = 'That phrase is already on your list.'; render(); return; }
   const phrase: Phrase = { id: crypto.randomUUID(), label: variants[0] ?? '', variants, pattern: 'tap', createdAt: Date.now() };
   state.settings = { ...state.settings, phrases: [...state.settings.phrases, phrase], updatedAt: Date.now() }; state.error = ''; state.removed = null; state.notice = `${phrase.label} added. Use Test vibration to check the alert.`; await persist(); render(); document.querySelector<HTMLInputElement>('#phrase')?.focus();
@@ -205,7 +217,6 @@ async function addPhrase(value: string): Promise<void> {
 
 async function removePhrase(id: string): Promise<void> { const index = state.settings.phrases.findIndex((phrase) => phrase.id === id); const phrase = state.settings.phrases[index]; if (!phrase) return; state.removed = { phrase, index }; state.settings = { ...state.settings, phrases: state.settings.phrases.filter((item) => item.id !== id), updatedAt: Date.now() }; state.notice = `${phrase.label} removed.`; await persist(); render(); }
 async function undoRemove(): Promise<void> { if (!state.removed) return; const { phrase, index } = state.removed; const phrases = [...state.settings.phrases]; phrases.splice(index, 0, phrase); state.settings = { ...state.settings, phrases, updatedAt: Date.now() }; state.removed = null; state.notice = `${phrase.label} restored.`; await persist(); render(); }
-async function updatePattern(id: string, pattern: HapticPattern): Promise<void> { if (!state.license.unlocked) return; state.settings = { ...state.settings, phrases: state.settings.phrases.map((phrase) => phrase.id === id ? { ...phrase, pattern } : phrase), updatedAt: Date.now() }; await persist(); state.notice = 'Vibration pattern updated. Use Test vibration to check it.'; render(); }
 function testPhrase(id: string): void { const phrase = state.settings.phrases.find((item) => item.id === id); if (!phrase) return; pulse(phrase); state.notice = `Test vibration: ${phrase.label}.`; render(); }
 function replayDemo(): void { const phrase = state.settings.phrases[0]; if (!phrase) return; pulse(phrase); state.notice = 'Sample alert replayed for Maya.'; render(); document.querySelector('.demo-sample')?.classList.add('cue-active'); }
 
@@ -219,8 +230,7 @@ async function startListening(): Promise<void> {
 function stopListening(): void { captioner?.stop(); captioner = null; state.stage = 'setup'; state.captions = []; state.lastMatch = null; state.consent = false; state.notice = 'Session stopped. Temporary captions were cleared.'; render(); requestAnimationFrame(() => document.querySelector<HTMLElement>('#setup')?.scrollIntoView()); }
 function handleCaption(text: string, final: boolean): void { const match = findMatch(text, state.settings.phrases); const last = state.captions.at(-1); const line: CaptionLine = { id: crypto.randomUUID(), text, final, matchedPhrase: match }; if (last && !last.final) state.captions.splice(-1, 1, line); else state.captions.push(line); state.captions = state.captions.slice(-6); if (match && Date.now() - (lastAlertAt.get(match.id) ?? 0) > 1200) { lastAlertAt.set(match.id, Date.now()); pulse(match); } render(); }
 function pulse(phrase: Phrase): void { state.lastMatch = phrase; state.cueActive = state.settings.visualCue; if (state.settings.hapticCue) { const patterns: Record<HapticPattern, number[]> = { tap: [220,90,320], knock: [120,80,120], urgent: [180,80,180,80,360] }; if (captioner) void captioner.vibrate(patterns[phrase.pattern]); else navigator.vibrate?.(patterns[phrase.pattern]); } window.setTimeout(() => { state.cueActive = false; if (state.stage === 'listening') render(); }, 900); }
-async function restoreLicense(token: string): Promise<void> { if (state.demo) return; try { state.license = saveLicense(token); render(); state.license = await verifyLicense(state.license, true); render(); } catch (error) { state.license.notice = error instanceof Error ? error.message : 'Could not restore this license.'; render(); } }
-async function importFile(file: File | undefined): Promise<void> { if (!file) return; try { const imported = parseSettingsFile(await file.text()); const maximum = state.license.unlocked ? imported.phrases.length : 3; state.settings = { ...imported, phrases: imported.phrases.slice(0, maximum) }; await persist(); state.notice = `Imported ${state.settings.phrases.length} phrase${state.settings.phrases.length === 1 ? '' : 's'}.`; state.error = ''; } catch (error) { state.error = error instanceof Error ? error.message : 'Could not read that settings file.'; } render(); }
+async function importFile(file: File | undefined): Promise<void> { if (!file) return; try { const imported = parseSettingsFile(await file.text()); state.settings = { ...imported, phrases: imported.phrases.slice(0, 3) }; await persist(); state.notice = `Imported ${state.settings.phrases.length} phrase${state.settings.phrases.length === 1 ? '' : 's'}.`; state.error = ''; } catch (error) { state.error = error instanceof Error ? error.message : 'Could not read that settings file.'; } render(); }
 
 function registerServiceWorker(): void { if (!('serviceWorker' in navigator)) return; const register = () => { void navigator.serviceWorker.register('/sw.js').then((registration) => { const announce = () => { if (registration.waiting && navigator.serviceWorker.controller) { state.updateReady = registration; state.notice = 'A Name Tap update is ready.'; render(); } }; announce(); registration.addEventListener('updatefound', () => registration.installing?.addEventListener('statechange', announce)); }).catch(() => { state.notice = 'Offline install is unavailable in this browser.'; render(); }); }; if (document.readyState === 'complete') register(); else window.addEventListener('load', register, { once: true }); }
 function applyUpdate(): void { const registration = state.updateReady; if (!registration?.waiting) return; let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; window.location.reload(); } }, { once: true }); registration.waiting.postMessage({ type: 'SKIP_WAITING' }); }

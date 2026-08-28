@@ -77,7 +77,7 @@ select { appearance: none; background: var(--panel) url("data:image/svg+xml,%3Cs
 button:active, .buy-button:active { transform: translate(5px, 5px); box-shadow: 1px 1px 0 var(--ink); }
 button:disabled { opacity: .56; cursor: not-allowed; box-shadow: none; transform: none; }
 .phrase-list { list-style: none; padding: 0; margin: 0; border-top: var(--line); }
-.phrase-row { display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 14px; align-items: center; min-height: 74px; border-bottom: 2px solid var(--ink); padding: 10px 0; }
+.phrase-row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; min-height: 74px; border-bottom: 2px solid var(--ink); padding: 10px 0; }
 .phrase-row strong { font-size: 1.12rem; }
 .pattern-select { width: auto; min-width: 92px; font-size: .85rem; padding: 8px 32px 8px 9px; }
 .phrase-grip { color: var(--ink); background: var(--signal); border: 2px solid var(--ink); width: 20px; height: 20px; display: grid; place-items: center; font-size: 8px; }
@@ -117,8 +117,9 @@ button:disabled { opacity: .56; cursor: not-allowed; box-shadow: none; transform
 .demo-banner button { min-height: 44px; border: 2px solid var(--ink); background: var(--panel); padding: 6px 12px; font-weight: 850; cursor: pointer; }
 .demo-banner button:last-child { background: var(--ink); color: var(--panel); }
 .demo-sample { margin-bottom: 88px; border: var(--line); box-shadow: 10px 10px 0 var(--ink); background: var(--ink); color: var(--panel); padding: clamp(24px, 5vw, 52px); transition: background 160ms, color 160ms; }
+.demo-route .demo-sample { margin-top: clamp(24px, 4vw, 52px); }
 .demo-sample.cue-active { background: var(--signal); color: var(--ink); }
-.demo-sample h2 { font-size: clamp(2.8rem, 8vw, 6rem); margin-block: 24px; }
+.demo-sample h1, .demo-sample h2 { font-size: clamp(2.8rem, 8vw, 6rem); margin-block: 24px; }
 .sample-status { display: flex; align-items: center; gap: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; }
 .sample-status span { width: 14px; height: 14px; border: 2px solid currentColor; background: var(--signal); }
 .sample-caption { display: flex; justify-content: space-between; gap: 20px; padding: 13px 16px; border: 2px solid currentColor; background: var(--panel); color: var(--ink); }

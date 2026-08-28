@@ -1,6 +1,6 @@
 # Name Tap copy audit
 
-Audited 28 August 2026 after polish round 1. Hyphenated terms count as one word. Labels, headings, and actions are included because they must also make sense alone.
+Audited 28 August 2026 after polish round 2. Hyphenated terms count as one word. Labels, headings, and actions are included because they must also make sense alone.
 
 ## Default landing page
 
@@ -51,8 +51,8 @@ Audited 28 August 2026 after polish round 1. Hyphenated terms count as one word.
 | Temporary captions never enter the settings file. | 7 | Pass |
 | Vibration alert | 2 | Pass |
 | Requests your device vibration motor | 5 | Pass |
-| Full-screen visual alert | 3 | Pass |
-| Shows a high-contrast phrase alert | 5 | Pass |
+| High-contrast visual alert | 3 | Pass; matches the tested visual state |
+| Flashes the matched phrase in black and bright green | 9 | Pass; exact tested colours |
 | Move your saved phrases | 4 | Pass |
 | Temporary captions are excluded | 4 | Pass |
 | Export settings | 2 | Pass |
@@ -65,6 +65,23 @@ Audited 28 August 2026 after polish round 1. Hyphenated terms count as one word.
 
 No sentence exceeds 22 words. No banned marketing word appears. The first screen states the job, audience, sample action, and three facts before the illustration.
 
+## Demo first screen
+
+| Copy | Words | Result |
+| --- | ---: | --- |
+| Demo — sample data, nothing is saved | 6 | Pass |
+| Reset demo | 2 | Pass |
+| Start for real | 3 | Pass |
+| Sample session · local captions | 4 | Pass |
+| Maya was heard | 3 | Pass; demo h1 |
+| Can Maia bring the blue folder? | 6 | Pass |
+| HEARD · MAYA | 2 | Pass |
+| The alternate spelling “Maia” matched the saved phrase “Maya.” | 9 | Pass |
+| Replay sample alert | 3 | Pass |
+| Requests the vibration pattern and flashes this board. | 8 | Pass |
+
+The matched board intersects the first 390 × 844 and 1440 × 1000 viewports after one click.
+
 ## Terminology
 
 | Concept | Chosen term | Reserved detail |
@@ -73,6 +90,6 @@ No sentence exceeds 22 words. No banned marketing word appears. The first screen
 | User notification | alert | Vibration describes the physical effect only. |
 | Speech-to-text feature | local captions | Recognizer appears only in developer documentation. |
 | Sample mode | demo | Sample data describes its contents. |
-| Paid state | lifetime purchase | License appears only in technical support text. |
+| Price state | purchase unavailable | No purchase or license controls are shown. |
 
-README sentences were checked with the same rules. Its longest sentence has 21 words.
+README sentences and both legal pages were checked with the same rules. No sentence exceeds 22 words or uses a banned marketing word.

@@ -46,6 +46,8 @@ interface NativeSpeechPlugin {
 
 const NativeSpeech = registerPlugin<NativeSpeechPlugin>('LocalSpeech');
 
+export type LocalSpeechSupport = 'checking' | 'ready' | 'downloadable' | 'unavailable' | 'missing' | 'unknown';
+
 function usesNativeAndroidBridge(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 }
@@ -58,11 +60,30 @@ function constructor(): RecognitionConstructor | undefined {
   return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 }
 
-export function localSpeechSupport(): 'ready' | 'missing' | 'unknown' {
-  if (usesNativeAndroidBridge()) return 'ready';
+function unsafeAutomatedNativeProbe(Speech: RecognitionConstructor): boolean {
+  return navigator.webdriver === true && Boolean(Speech.available) && Function.prototype.toString.call(Speech.available).includes('[native code]');
+}
+
+export async function probeLocalSpeechSupport(language: string): Promise<Exclude<LocalSpeechSupport, 'checking'>> {
+  if (usesNativeAndroidBridge()) {
+    try {
+      return (await NativeSpeech.getStatus()).available ? 'ready' : 'unavailable';
+    } catch {
+      return 'unknown';
+    }
+  }
   const Speech = constructor();
   if (!Speech) return 'missing';
-  return 'processLocally' in Speech.prototype ? 'ready' : 'unknown';
+  if (!('processLocally' in Speech.prototype) || !Speech.available || unsafeAutomatedNativeProbe(Speech)) return 'unknown';
+  try {
+    const availability = await Speech.available({ langs: [language], processLocally: true });
+    if (availability === 'available') return 'ready';
+    if (availability === 'downloadable' || availability === 'downloading') return 'downloadable';
+    if (availability === 'unavailable') return 'unavailable';
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
 }
 
 const errorMessages: Record<string, string> = {
@@ -115,14 +136,13 @@ export class LocalCaptioner {
       throw new Error('This browser cannot guarantee on-device captions, so Name Tap will not send audio. Use a Chrome version with on-device speech recognition.');
     }
 
-    if (Speech.available) {
-      const availability = await Speech.available({ langs: [language], processLocally: true });
-      if (availability === 'downloadable' && Speech.install) {
-        const installed = await Speech.install({ langs: [language] });
-        if (!installed) throw new Error('The offline language pack was not installed. Free some storage and try again.');
-      } else if (availability === 'unavailable') {
-        throw new Error('On-device captions are not available for this language on this device.');
-      }
+    if (!Speech.available) throw new Error('This browser cannot confirm local captions, so Name Tap will not send audio. Use current Chrome on Android.');
+    const availability = await Speech.available({ langs: [language], processLocally: true });
+    if ((availability === 'downloadable' || availability === 'downloading') && Speech.install) {
+      const installed = await Speech.install({ langs: [language] });
+      if (!installed) throw new Error('The offline language pack was not installed. Free some storage and try again.');
+    } else if (availability !== 'available') {
+      throw new Error('On-device captions are not available for this language on this device.');
     }
 
     recognition.lang = language;

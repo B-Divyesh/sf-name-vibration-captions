@@ -2,11 +2,11 @@ export function legalPage(path: string): string | null {
   if (path === '/privacy') return `
     <main id="main" class="legal-shell">
       <p class="eyebrow">Plain-language policy · 28 August 2026</p>
-      <h1 tabindex="-1">Privacy stays on your device</h1>
+      <h1 tabindex="-1">How Name Tap handles your data</h1>
       <section><h2>When the microphone is used</h2><p>Name Tap uses the microphone only after you choose Start listening and confirm consent. It stops if local captions are unavailable.</p></section>
-      <section><h2>What stays on your device</h2><p>Your phrases, language, alert choices, and license token stay in this browser or app. Temporary captions disappear when you stop.</p></section>
+      <section><h2>What stays on your device</h2><p>Your phrases, language, and alert choices stay in this browser or app. Temporary captions disappear when you stop.</p></section>
       <section><h2>What the demo does</h2><p>The demo uses bundled sample phrases in memory. It never opens or changes your saved phrase database.</p></section>
-      <section><h2>What we collect</h2><p>Name Tap has no analytics, advertising, account, or tracking scripts. The web host may keep short security logs.</p><p>Sociobot receives a license token only when you restore a prior purchase. Audio, captions, and phrases are not included.</p></section>
+      <section><h2>What the web host receives</h2><p>Name Tap has no analytics, advertising, account, or tracking scripts.</p><p>The web host may keep request logs under the <a href="https://sociobot.in/privacy">Sociobot privacy policy (external site)</a>. Name Tap sends no phrases, captions, or audio to another site.</p></section>
       <section><h2>Your control</h2><p>Export or import settings in the app. Remove phrases there, or clear this site’s storage to erase all saved data.</p></section>
       <section><h2>Contact</h2><p>Email privacy questions to <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p></section>
     </main>`;

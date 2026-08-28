@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -46,5 +46,30 @@ describe('static deployment policy', () => {
     expect(license).toContain('Permission is hereby granted');
     expect(license).toContain('THE SOFTWARE IS PROVIDED "AS IS"');
     expect(readFileSync(resolve('README.md'), 'utf8')).toContain('MIT');
+  });
+
+  it('keeps one uniquely tagged test for every registered claim', () => {
+    const claims = JSON.parse(readFileSync(resolve('.factory/claims.json'), 'utf8')) as Array<{ id: string; test: string }>;
+    const testSource = readdirSync(resolve('tests'), { recursive: true })
+      .filter((entry) => typeof entry === 'string' && entry.endsWith('.ts'))
+      .map((entry) => readFileSync(resolve('tests', entry), 'utf8'))
+      .join('\n');
+    expect(new Set(claims.map(({ id }) => id)).size).toBe(claims.length);
+    for (const { id, test } of claims) {
+      expect(test).toContain(`@claim:${id}`);
+      expect(testSource.match(new RegExp(`@claim:${id}(?![a-z0-9-])`, 'g')) ?? [], id).toHaveLength(1);
+    }
+    const tagged = [...testSource.matchAll(/@claim:([a-z0-9-]+)/g)].map((match) => match[1]);
+    expect(new Set(tagged)).toEqual(new Set(claims.map(({ id }) => id)));
+  });
+
+  it('keeps reviewed public copy and the catalog line plain', () => {
+    const publicCopy = [readFileSync(resolve('README.md'), 'utf8'), readFileSync(resolve('src/legal.ts'), 'utf8'), readFileSync(resolve('src/main.ts'), 'utf8')].join('\n');
+    for (const rejected of ['Full-screen visual alert', 'tap pattern', 'native vibration waveform', 'off origin', 'short security logs', 'Every public statement']) {
+      expect(publicCopy).not.toContain(rejected);
+    }
+    const catalog = readFileSync(resolve('.factory/catalog-description.txt'), 'utf8').trim();
+    expect(catalog.length).toBeLessThanOrEqual(120);
+    expect(catalog).toMatch(/^Feel\b/);
   });
 });

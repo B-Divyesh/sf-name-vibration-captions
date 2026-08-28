@@ -16,7 +16,7 @@ await writeFile(manifest, manifestSource.replaceAll('__BUILD_VERSION__', buildVe
 
 const routeMeta = {
   demo: ['Demo — Name Tap', 'Try Name Tap with isolated sample phrases and captions. Nothing is saved.'],
-  privacy: ['Privacy — Name Tap', 'How Name Tap keeps phrases and temporary captions on your device.'],
+  privacy: ['Privacy — Name Tap', 'How Name Tap handles phrases, temporary captions, and web request logs.'],
   terms: ['Terms — Name Tap', 'Terms for using Name Tap as an assistive phrase alert.'],
   '404': ['Page not found — Name Tap', 'This Name Tap page does not exist. Return home or try the sample.']
 };
