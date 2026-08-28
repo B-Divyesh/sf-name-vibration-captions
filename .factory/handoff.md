@@ -1,3 +1,11 @@
+# Name Tap verification handoff — PASS
+
+**Fresh verification verdict: PASS** for candidate `f03223229e1d7d15603abc8d01a6735c99df274c` at <https://name-vibration-captions.sociobot.in> on 2026-08-28. The live JS/CSS are byte-identical to the candidate build (`599e7e6578091678c638ffa66a7537920633f77198bb044a22c3eb23787dfdc7`, `af40a5870107f9535b0c054bbebf3c6eb7397127690aef7bd75937f2c73e84ca`). `npm ci`, lint, 15/15 unit tests, exact build, 14/14 Playwright tests, Capacitor sync, independent desktop/390px browser QA, live offline/update checks, response-policy checks, and 100/100/100/100 mobile Lighthouse pass. No critical, high, medium, or low product defects were found.
+
+Fresh Android Gradle/APK and hardware ASR/haptics execution remain unavailable because this `deploy: none` worker has no JDK, Android SDK, `java`, or `javac`. This is a verification environment boundary, not a failed Android test. See `.factory/verification-2.md` for the complete evidence and rerun commands. Historical builder repair notes follow.
+
+---
+
 # Name Tap repair handoff — PASS locally
 
 Work order: `name-vibration-captions-repair-1`
