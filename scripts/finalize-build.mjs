@@ -33,7 +33,7 @@ for (const route of Object.keys(routeMeta)) {
     .replace(/<meta name="twitter:title" content="[^"]+" \/>/, `<meta name="twitter:title" content="${title}" />`)
     .replace(/<meta name="twitter:description" content="[^"]+" \/>/, `<meta name="twitter:description" content="${description}" />`);
   if (route === '404') {
-    await writeFile(new URL('404.html', dist), routeHtml);
+    await writeFile(new URL('not-found.html', dist), routeHtml);
   } else {
     await mkdir(new URL(`${route}/`, dist), { recursive: true });
     await writeFile(new URL(`${route}/index.html`, dist), routeHtml);

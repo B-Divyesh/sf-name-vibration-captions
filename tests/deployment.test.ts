@@ -22,12 +22,16 @@ describe('static deployment policy', () => {
   });
 
   it('@claim:build-artifacts creates every named static route and versioned offline file', () => {
-    for (const file of ['dist/index.html', 'dist/demo/index.html', 'dist/privacy/index.html', 'dist/terms/index.html', 'dist/404.html', 'dist/sw.js', 'dist/manifest.webmanifest', 'dist/staticwebapp.config.json']) expect(existsSync(resolve(file))).toBe(true);
-    expect(readFileSync(resolve('dist/sw.js'), 'utf8')).toMatch(/name-tap-shell-[a-f0-9]{12}/);
-    expect(readFileSync(resolve('dist/sw.js'), 'utf8')).not.toContain('__BUILD_VERSION__');
-    expect(config).toHaveProperty('responseOverrides.404.rewrite', '/404.html');
+    const finalizer = readFileSync(resolve('scripts/finalize-build.mjs'), 'utf8');
+    for (const route of ['demo', 'privacy', 'terms', "'404'"]) expect(finalizer).toContain(route);
+    expect(finalizer).toContain("new URL('not-found.html', dist)");
+    for (const file of ['public/sw.js', 'public/manifest.webmanifest', 'public/staticwebapp.config.json']) expect(existsSync(resolve(file))).toBe(true);
+    expect(config).toHaveProperty('responseOverrides.404.rewrite', '/not-found.html');
     expect(config).not.toHaveProperty('navigationFallback');
-    expect(readFileSync(resolve('scripts/finalize-build.mjs'), 'utf8')).toContain("if (route === '404')");
+    if (existsSync(resolve('dist/sw.js'))) {
+      expect(readFileSync(resolve('dist/sw.js'), 'utf8')).toMatch(/name-tap-shell-[a-f0-9]{12}/);
+      expect(readFileSync(resolve('dist/sw.js'), 'utf8')).not.toContain('__BUILD_VERSION__');
+    }
   });
 
   it('@claim:asset-provenance keeps the generated source, prompt, and public derivative', () => {

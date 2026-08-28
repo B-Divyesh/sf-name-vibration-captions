@@ -249,5 +249,5 @@ test('ships a content-versioned service worker and direct static routes', async 
   await page.goto('/');
   const [worker, manifest] = await Promise.all([page.request.get('/sw.js').then((r) => r.text()), page.request.get('/manifest.webmanifest').then((r) => r.json() as Promise<{ start_url: string }>)]);
   const version = worker.match(/name-tap-shell-([a-f0-9]{12})/)?.[1]; expect(version).toBeTruthy(); expect(manifest.start_url).toContain(`v=${version}`);
-  for (const route of ['/demo/', '/privacy/', '/terms/', '/404.html']) expect((await page.request.get(route)).ok()).toBe(true);
+  for (const route of ['/demo/', '/privacy/', '/terms/', '/not-found.html']) expect((await page.request.get(route)).ok()).toBe(true);
 });

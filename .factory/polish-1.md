@@ -22,7 +22,7 @@ Evidence keys used below:
 | F-1-2 | Added `?demo=1` and `/demo`, bundled Maya/Maia sample captions, a persistent banner, reset, exit, and in-memory isolation. | demo-isolation/reset test; `@claim:local-settings`; `E-demo`; live `/?demo=1` |
 | F-1-3 | Added `.factory/claims.json` with one uniquely tagged observable test for each retained claim. | claim-tag uniqueness audit; `E-claims` |
 | F-1-4 | Removed the dead purchase offer and checkout anchor because the required Sociobot product is not registered. No broken payment link remains. | link crawl in route suite; live `/`; API probe remains 404 and is no longer linked |
-| F-1-5 | Added the signal-board 404 page, static `404.html`, and host 404 response override without a catch-all home rewrite. | route/404 test; `E-404`; live `/does-not-exist` |
+| F-1-5 | Added the signal-board 404 page, static `not-found.html`, and host 404 response override without a catch-all home rewrite. | route/404 test; `E-404`; live `/does-not-exist` |
 | F-1-6 | Reworded the statement and registered match vibration behavior. | `@claim:vibration-on-match`; `E-demo`; live demo replay |
 | F-1-7 | Kept the concrete no-recording fact and instrumented media/storage APIs. | `@claim:no-recording`; live demo |
 | F-1-8 | Kept no-account copy and tested the flow plus request log. | `@claim:no-account`; live demo |
