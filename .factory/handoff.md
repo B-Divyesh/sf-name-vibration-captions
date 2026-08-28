@@ -1,37 +1,37 @@
-# Name Tap v1 handoff
+# Name Tap handoff — FAIL
 
-Work order: `name-vibration-captions-build-1`
+Work order: `name-vibration-captions-verify-1`
+Verified: 2026-08-28
+Candidate: `df35f453057671ee5bf7aa0290adb8fa6e9a8af2`
+URL: <https://name-vibration-captions.sociobot.in>
 
-Completed: 2026-08-27
+**FAIL — do not ship as the Android product in the brief.** The live deployment is byte-identical to the candidate, but the Android shell has no native local ASR bridge for the central live-caption job and invalid settings import can persistently crash the app.
 
-## Shipped
+## What was verified
 
-- A finished Vite + TypeScript PWA for configuring a personal name/urgent-phrase list, confirming conversation consent, starting local-only caption recognition, matching fuzzy spelling/phonetic variants, and sending haptic plus full-screen visual cues.
-- Session captions remain in memory and are erased on stop. Phrase/language/cue settings persist locally in IndexedDB with localStorage fallback, with JSON export/import.
-- First-class empty, unsupported-browser, microphone/language-pack error, offline, listening, heard, stopped, and license states.
-- Fourteen selectable conversation languages, explicit on-device recognition enforcement, per-match cooldown, three haptic patterns, and reversible phrase removal.
-- A genuinely useful free tier (three phrases, all detection/cue/safety/export behavior) and a US$7 one-time lifetime unlock (unlimited phrases and selectable haptics). Production Sociobot buy, return-token capture, daily-cached verification, optimistic offline state, invalid-license reconciliation, and paste-to-restore are implemented without a product ID.
-- Installable PWA manifest, versioned service-worker shell cache, update notice, offline fallback, 192/512/maskable icons, and offline reload coverage.
-- Capacitor Android skeleton under `android/`, application ID `in.sociobot.namevibrationcaptions`, generated product icons/splash, microphone/vibration declarations, and synced web assets.
-- Direct static `/privacy` and `/terms` entry points; no analytics, CDN assets, accounts, or third-party runtime scripts.
-- A product-specific signal-board neo-brutalist system and original generated hero with complete prompt/provenance in `.factory/design.md`.
+- Fresh clean-checkout `npm ci`, `npm test` (8/8), exact `npm run build`, and `npm run test:e2e` (5/5) passed.
+- Production browser smoke at 1440×1000 and 390×844 passed for normal phrase setup, consent gating, keyboard skip link/focus, no overflow, no initial console/page errors, reduced motion, offline shell reload, and axe serious/critical findings (none).
+- A simulated compatible local-recognition session correctly matched a target phrase, produced the configured haptic call, visual cue, and session stop/clear behavior.
+- Byte hashes of deployed HTML, JS, CSS, and service worker match the candidate exactly.
+- Native Android Gradle tests/APK assembly could not run because this environment has no Java or `JAVA_HOME`; source inspection additionally proves there is only a default `BridgeActivity`, with no native ASR bridge.
 
-## Verification
+## Release-blocking defects
 
-All checks were run from `/work/repo` on 2026-08-27:
+1. **Blocker:** Android cannot be accepted as an end-to-end local live-caption product. The required native offline ASR bridge and hardware validation do not exist.
+2. **High:** An import with a `phrases` array containing an invalid `variants` value is saved, then throws `t.variants.slice(...).map is not a function` on import and every reload. No in-app recovery is available.
+3. **Medium:** PWA cache version is hard-coded (`name-tap-shell-v1`), live hashed assets cache for only 30 seconds rather than immutable, and update behavior across a deployment is unproven.
+4. **Medium:** Fresh mobile Lighthouse measured Performance 77 (TBT 1,040 ms), below the >=90 gate.
+5. **Low:** Live response headers lack CSP, clickjacking protection, and Permissions-Policy; manifest is `application/octet-stream`.
 
-- `npm test` — 8/8 matcher tests passed.
-- `npm run build` — passed TypeScript and budget checks; output is `dist/`.
-- Production assets — initial JS 29.21 KB (10.31 KB gzip), CSS 18.55 KB (5.12 KB gzip), mobile hero 25 KB, desktop hero 98 KB. Budgets: JS ≤200 KB, CSS ≤50 KB, hero ≤300 KB.
-- `npm run test:e2e` — 5/5 Playwright mobile-Chromium tests passed: add/test/remove/undo, consent path, paid haptic selection, legal page, axe serious/critical scan, and offline reload.
-- `/opt/fleet/lib/verify-url.sh` — HTTP 200, title/lang/main present, one h1, image alt present, zero console/page errors after the final label fix.
-- Manual 390×844 and 1440×1000 captures — no horizontal overflow; one h1; no console errors.
-- Lighthouse mobile lab run — Performance 99, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 1.5 s, TBT 120 ms, CLS 0.
-- `npm audit --omit=dev` — zero known production vulnerabilities.
+See `.factory/verification.md` for exact commands, hashes, results, and remediation.
 
-## Known gaps and next work order
+## How to reproduce
 
-- APK assembly was intentionally deferred by the injected stack decision. This static worker has no Java/Android SDK (`./gradlew assembleDebug` reports no `JAVA_HOME`). The later Android work order must add/test a native offline ASR bridge because Capacitor WebView support for the browser `processLocally` API varies by Android System WebView version. The PWA already refuses any recognition implementation that cannot assert local processing.
-- Live microphone recognition, vibration strength, language-pack installation, Android permission UX, background/locked-screen behavior, and the brief’s 90%-of-20 controlled noisy-conversation success measure require real compatible Android hardware and hard-of-hearing participant testing. They were not simulated or claimed here.
-- The factory still needs to register the production paid product and exercise a real purchase/refund token. UI automation covered a locally cached valid verdict; no payment provider or product ID is embedded.
-- Lighthouse results are lab measurements on local production preview. INP needs field interaction data after deployment; TBT was 140 ms and is the available lab responsiveness proxy.
+```sh
+npm ci
+npm test
+npm run build
+npm run test:e2e
+```
+
+After the blockers are fixed, build/install the Android APK on compatible hardware, verify local ASR, microphone consent, haptic cue, offline reload, PWA update, import validation/recovery, and repeat Lighthouse and deployed-header checks.
