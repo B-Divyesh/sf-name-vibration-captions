@@ -1,47 +1,85 @@
-# Name Tap review 5 handoff
+# Name Tap repair 3 handoff
 
-Work order: `name-vibration-captions-review-5`
+Work order: `name-vibration-captions-repair-3`
 
 ## Result
 
-**FAIL — 1 low-severity finding and 0 untested public claims.**
+**PASS — the Review 5 plain-words finding is repaired.**
 
-No product code was changed. The live 404 has one decorative metaphor label, `WRONG FREQUENCY · 404`, which violates the plain-words contract. Replace it with plain information and add that 404 copy to the copy audit before a PASS can be claimed.
+The 404 page now shows the literal status `404`, followed by the plain heading
+**Page not found**. It keeps both recovery actions: **Back to Name Tap** and
+**Try sample data**. The decorative “WRONG FREQUENCY” label is gone.
 
-## Versions
+The repair implementation is `060dafc049ae20bad0ace0d7db41ad023a23bd05`.
 
-- Implementation candidate: `bb66111dde6987882e8c5f3f279af39805610886`
-- Documentation head reviewed: `7cc0b383376c6dc37db7b5cc5fcae33b3bb57bc7`
-- Live URL: <https://name-vibration-captions.sociobot.in>
-- Live and built JavaScript SHA-256: `73409698d501a703e2bb1e37c5ae0931de51212635d023d6efd321e490d15eb7`
-- Live and built CSS SHA-256: `f94023838af558315d086285e8ec946bc98ed3732a45aa72507801e0966476f7`
+## What changed
 
-The commits after the implementation candidate are documentation-only. The deployed JavaScript and CSS match the clean build exactly.
+- Replaced the decorative 404 label with `404` in `src/main.ts`.
+- Advanced the displayed build ID to `1.2.2-repair3`.
+- Added every visible 404 sentence and action to `.factory/copy-audit.md`.
+- Extended the browser route test and live cold audit to prove the rendered
+  status and both recovery destinations. These are user-visible flow checks,
+  not source-string checks.
+- Copied the verb-first catalog description to
+  `/work/.evidence/catalog-description.txt`.
 
-## What was verified
+## Verification
 
-- Fresh phone and desktop first screens state the job, hard-of-hearing audience, sample action, and three facts before scrolling.
-- The one-click Maya sample, persistent demo label, reset, real-data isolation, replay alert, and same-origin network behavior passed live.
-- Live offline sample reload, reduced motion, skip-link focus, legal routes, 404 response, headers, and Axe smoke checks passed. The 404 wording is the single finding.
-- All 25 declared claim commands passed individually from clean checkout `/tmp/name-tap-review5.pDHIlD`.
-- `npm run lint`, 21 unit/static tests, 50 browser tests, build, Capacitor sync, and live audit passed.
+From the documented clean setup, `npm ci` installed 150 locked packages with
+no reported vulnerabilities. The following all passed:
 
-Read the required repair and complete evidence in [`.factory/review-5.md`](review-5.md).
+- `npm run lint`
+- `npm test` — 21/21 unit and static tests
+- `npm run build` — created `dist/`; JavaScript 40.41 KB (14.21 KB gzip) and
+  CSS 21.09 KB (5.47 KB gzip)
+- `npm run test:e2e` — 50/50 desktop and 390 px phone browser tests
+- Every exact command in `.factory/claims.json` — 25/25 passed individually
+- `npm run cap:sync`
 
-## How to repeat
+The focused not-found browser check passed on desktop and phone. It asserts the
+page title, plain 404 status, heading, and both recovery links. The full browser
+suite continues to cover the populated Maya sample, persistent demo banner,
+reset, real-data isolation, error recovery, keyboard/focus, offline reload,
+reduced motion, route structure, and serious/critical accessibility rules.
 
-```sh
-npm ci
-npm run lint
-npm test
-npm run build
-npm run test:e2e
-npm run cap:sync
-npm run audit:live
-```
+## Deployment and live check
 
-Run each `test` value in `.factory/claims.json` separately for the claim gate.
+Built `dist/` was deployed to the existing product static app with deployment
+ID `87a64864-9486-4f95-9ac1-7f317971efa4`. HTTPS remained available at
+<https://name-vibration-captions.sociobot.in>.
+
+The live JavaScript and CSS match the local build byte-for-byte:
+
+- JavaScript `assets/index-DM2qtCiJ.js`:
+  `9c6094a950d0131781c72148d61edb7a989f7d5a50a24d67ac046c9cfd60e79c`
+- CSS `assets/style-DuB63aH8.css`:
+  `f94023838af558315d086285e8ec946bc98ed3732a45aa72507801e0966476f7`
+
+`npm run audit:live` passed against production. It opened fresh phone and
+desktop contexts, exercised the one-click populated sample, demo isolation,
+reset, real-data exit, offline reload, route metadata, accessibility checks,
+and the deliberate HTTP 404. Fresh phone and desktop reads showed the job
+(“Feel a tap when someone says your name”), audience (hard-of-hearing people in
+group conversations), and first action (**Try it with sample data**) before
+scrolling. The 404 returned HTTP 404 and rendered the literal `404` status with
+both recovery links.
+
+A second live Lighthouse run completed after the first headless tab crash:
+Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s,
+LCP 1.3 s, TBT 70 ms, CLS 0.
+
+## Earlier findings
+
+The Review 5 report and every prior verification/review record were re-read.
+Their previously repaired paths remain covered by the current build, browser,
+claim, Android static, offline, privacy, accessibility, and host-policy checks.
+Review 5's R5-1 was the only open finding; its page copy and audit omission are
+both repaired here.
 
 ## Remaining boundary
 
-Physical Android-device testing remains unperformed. A compatible Android 12+ device needs the README hardware checklist; this is not a public claim and is not counted as an untested claim.
+Physical Android acceptance still needs an Android 12+ device with an installed
+offline language pack: install the debug build, grant microphone access, speak
+a saved phrase, and confirm the physical vibration. This is a documented
+hardware boundary, not a public web claim. No paid offer is currently shown;
+there is no registered live offer metadata to publish.
