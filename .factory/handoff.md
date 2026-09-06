@@ -9,6 +9,7 @@ Work order: `name-vibration-captions-repair-2`
 ## Versions and deployment
 
 - Implementation commit: `bb66111dde6987882e8c5f3f279af39805610886`
+- Verification documentation commit: `08b0732449673311a1f70e759a26e0c8faf1fb36`
 - Earlier failed review commit: `5b55248de0b7edfcec314b62708f9a60b8535ffd`
 - Static deployment ID: `9dc40aae-769d-4342-b82c-63a6942f8809`
 - Live URL: <https://name-vibration-captions.sociobot.in>
