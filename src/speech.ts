@@ -48,6 +48,9 @@ const NativeSpeech = registerPlugin<NativeSpeechPlugin>('LocalSpeech');
 
 export type LocalSpeechSupport = 'checking' | 'ready' | 'downloadable' | 'unavailable' | 'missing' | 'unknown';
 
+const LOCAL_CAPTION_CHECK_TIMEOUT_MS = 3000;
+const CANNOT_CONFIRM_LOCAL_CAPTIONS = 'This browser cannot confirm local captions, so Name Tap will not send audio. Use current Chrome on Android.';
+
 function usesNativeAndroidBridge(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 }
@@ -65,6 +68,25 @@ function unsafeAutomatedNativeProbe(Speech: RecognitionConstructor): boolean {
   return automated && Boolean(Speech.available) && Function.prototype.toString.call(Speech.available).includes('[native code]');
 }
 
+/**
+ * Browser availability is experimental and has been observed never to settle in
+ * fresh automated Chromium. A local-only product must fail closed instead of
+ * leaving the person on a disabled-looking start state forever.
+ */
+async function localAvailability(Speech: RecognitionConstructor, language: string): Promise<string> {
+  if (!Speech.available || unsafeAutomatedNativeProbe(Speech)) throw new Error(CANNOT_CONFIRM_LOCAL_CAPTIONS);
+  let timeout: number | undefined;
+  try {
+    const check = Promise.resolve().then(() => Speech.available!({ langs: [language], processLocally: true }));
+    const timedOut = new Promise<never>((_, reject) => {
+      timeout = window.setTimeout(() => reject(new Error(CANNOT_CONFIRM_LOCAL_CAPTIONS)), LOCAL_CAPTION_CHECK_TIMEOUT_MS);
+    });
+    return await Promise.race([check, timedOut]);
+  } finally {
+    if (timeout !== undefined) window.clearTimeout(timeout);
+  }
+}
+
 export async function probeLocalSpeechSupport(language: string): Promise<Exclude<LocalSpeechSupport, 'checking'>> {
   if (usesNativeAndroidBridge()) {
     try {
@@ -75,9 +97,9 @@ export async function probeLocalSpeechSupport(language: string): Promise<Exclude
   }
   const Speech = constructor();
   if (!Speech) return 'missing';
-  if (!('processLocally' in Speech.prototype) || !Speech.available || unsafeAutomatedNativeProbe(Speech)) return 'unknown';
+  if (!('processLocally' in Speech.prototype)) return 'unknown';
   try {
-    const availability = await Speech.available({ langs: [language], processLocally: true });
+    const availability = await localAvailability(Speech, language);
     if (availability === 'available') return 'ready';
     if (availability === 'downloadable' || availability === 'downloading') return 'downloadable';
     if (availability === 'unavailable') return 'unavailable';
@@ -137,8 +159,12 @@ export class LocalCaptioner {
       throw new Error('This browser cannot guarantee on-device captions, so Name Tap will not send audio. Use a Chrome version with on-device speech recognition.');
     }
 
-    if (!Speech.available) throw new Error('This browser cannot confirm local captions, so Name Tap will not send audio. Use current Chrome on Android.');
-    const availability = await Speech.available({ langs: [language], processLocally: true });
+    let availability: string;
+    try {
+      availability = await localAvailability(Speech, language);
+    } catch {
+      throw new Error(CANNOT_CONFIRM_LOCAL_CAPTIONS);
+    }
     if ((availability === 'downloadable' || availability === 'downloading') && Speech.install) {
       const installed = await Speech.install({ langs: [language] });
       if (!installed) throw new Error('The offline language pack was not installed. Free some storage and try again.');

@@ -104,18 +104,78 @@ test('@claim:free-tier allows three phrases, alerts, and export at no charge', a
   expect((await download).suggestedFilename()).toBe('name-tap-settings.json');
 });
 
-test('@claim:local-only-recognition sets the local flag and refuses a remote-only browser', async ({ page }) => {
+test('@claim:local-only-recognition keeps setup available when native local confirmation is unsafe or never settles', async ({ page, browser }) => {
   await page.addInitScript(() => {
-    class RemoteOnlyRecognition extends EventTarget { start() {} stop() {} abort() {} }
-    Object.defineProperty(window, 'SpeechRecognition', { value: RemoteOnlyRecognition, configurable: true });
+    class LocalRecognition extends EventTarget {
+      static available() { return new Promise<string>(() => {}); }
+      processLocally = true;
+      lang = '';
+      continuous = false;
+      interimResults = false;
+      maxAlternatives = 1;
+      onresult = null;
+      onerror = null;
+      onend = null;
+      start() { (window as any).__recognitionStarted = true; }
+      stop() {}
+      abort() {}
+    }
+    (LocalRecognition.prototype as any).processLocally = true;
+    Object.defineProperty(window, 'SpeechRecognition', { value: LocalRecognition, configurable: true });
   });
   await page.goto(demo);
   await page.getByRole('button', { name: 'Start for real' }).click();
   await page.getByLabel('Name or phrase, with other spellings').fill('Maya');
   await page.getByRole('button', { name: 'Add phrase' }).click();
   await page.getByLabel(/I told people nearby/).check();
+  const startedAt = Date.now();
   await page.getByRole('button', { name: /Start listening/ }).click();
-  await expect(page.getByRole('alert')).toContainText('cannot guarantee on-device captions');
+  await expect(page.getByRole('alert')).toContainText('cannot confirm local captions', { timeout: 5000 });
+  expect(Date.now() - startedAt).toBeLessThan(5000);
+  await expect(page.getByRole('button', { name: /Start listening/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Stop listening' })).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).__recognitionStarted)).not.toBeTruthy();
+
+  const nativeUnknownContext = await browser.newContext();
+  try {
+    const nativeUnknownPage = await nativeUnknownContext.newPage();
+    await nativeUnknownPage.addInitScript(() => {
+      (window as any).__availabilityChecks = 0;
+      class NativeLookingRecognition extends EventTarget {
+        static available() { (window as any).__availabilityChecks += 1; return new Promise<string>(() => {}); }
+        processLocally = true;
+        lang = '';
+        continuous = false;
+        interimResults = false;
+        maxAlternatives = 1;
+        onresult = null;
+        onerror = null;
+        onend = null;
+        start() { (window as any).__recognitionStarted = true; }
+        stop() {}
+        abort() {}
+      }
+      const originalToString = Function.prototype.toString;
+      Function.prototype.toString = function () {
+        if (this === NativeLookingRecognition.available) return 'function available() { [native code] }';
+        return originalToString.call(this);
+      };
+      (NativeLookingRecognition.prototype as any).processLocally = true;
+      Object.defineProperty(navigator, 'webdriver', { value: true, configurable: true });
+      Object.defineProperty(window, 'SpeechRecognition', { value: NativeLookingRecognition, configurable: true });
+    });
+    await nativeUnknownPage.goto(demo);
+    await nativeUnknownPage.getByRole('button', { name: 'Start for real' }).click();
+    await nativeUnknownPage.getByLabel('Name or phrase, with other spellings').fill('Maya');
+    await nativeUnknownPage.getByRole('button', { name: 'Add phrase' }).click();
+    await nativeUnknownPage.getByLabel(/I told people nearby/).check();
+    await nativeUnknownPage.getByRole('button', { name: /Start listening/ }).click();
+    await expect(nativeUnknownPage.getByRole('alert')).toContainText('cannot confirm local captions', { timeout: 1000 });
+    expect(await nativeUnknownPage.evaluate(() => (window as any).__availabilityChecks)).toBe(0);
+    expect(await nativeUnknownPage.evaluate(() => (window as any).__recognitionStarted)).not.toBeTruthy();
+  } finally {
+    await nativeUnknownContext.close();
+  }
 });
 
 test('@claim:support-detection handles every language-aware capability result without a false positive', async ({ page }) => {

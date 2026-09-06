@@ -9,7 +9,7 @@ const appElement = document.querySelector<HTMLDivElement>('#app');
 if (!appElement) throw new Error('App root was not found.');
 const app: HTMLDivElement = appElement;
 
-const BUILD_ID = '1.2.0-polish2';
+const BUILD_ID = '1.2.1-repair2';
 const SITE = 'https://name-vibration-captions.sociobot.in';
 const knownPaths = new Set(['/', '/demo', '/privacy', '/terms', '/404']);
 const demoPhrases: Phrase[] = [
@@ -182,8 +182,7 @@ function navigate(url: URL, replace = false): void {
   app.innerHTML = '<main id="main" class="route-loading" aria-busy="true"><p>Loading page…</p></main>';
   void initialize().then(() => {
     if (url.hash) document.querySelector<HTMLElement>(url.hash)?.scrollIntoView(); else window.scrollTo(0, 0);
-    const heading = document.querySelector<HTMLElement>('h1'); heading?.focus();
-    const status = document.querySelector<HTMLElement>('#route-status'); if (status && heading) status.textContent = `${heading.textContent ?? ''} page loaded`;
+    focusRouteHeading();
   });
 }
 
@@ -201,7 +200,16 @@ function bindEvents(): void {
   window.addEventListener('online', () => { state.online = true; render(); }); window.addEventListener('offline', () => { state.online = false; state.notice = 'The app is offline. Saved phrases and the sample still work.'; render(); });
 }
 
-function focusRouteHeading(): void { const heading = document.querySelector<HTMLElement>('h1'); heading?.focus(); const status = document.querySelector<HTMLElement>('#route-status'); if (status && heading) status.textContent = `${heading.textContent ?? ''} page loaded`; }
+function focusRouteHeading(): void {
+  // History restores the old link focus after popstate. Run after that restore
+  // so keyboard and screen-reader users arrive at the destination heading.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const heading = document.querySelector<HTMLElement>('h1');
+    heading?.focus();
+    const status = document.querySelector<HTMLElement>('#route-status');
+    if (status && heading) status.textContent = `${heading.textContent ?? ''} page loaded`;
+  }));
+}
 async function persist(): Promise<void> { if (!state.demo) await saveSettings(state.settings); }
 async function updateSetting(change: Partial<Settings>): Promise<void> { state.settings = { ...state.settings, ...change, updatedAt: Date.now() }; await persist(); render(); }
 async function changeLanguage(language: string): Promise<void> { await updateSetting({ language }); void refreshSupport(language); }
