@@ -377,6 +377,9 @@ test('routes set metadata, shared chrome, focus, and a designed not-found page',
   await page.goto('/does-not-exist');
   await expect(page).toHaveTitle('Page not found — Name Tap');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+  await expect(page.locator('.not-found .eyebrow')).toHaveText('404');
+  await expect(page.getByRole('link', { name: 'Back to Name Tap' })).toHaveAttribute('href', '/');
+  await expect(page.getByRole('link', { name: 'Try sample data' })).toHaveAttribute('href', '/?demo=1');
 });
 
 test('meets accessibility, mobile touch-target, overflow, and metadata checks', async ({ page }) => {

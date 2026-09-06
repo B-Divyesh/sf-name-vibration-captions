@@ -1,6 +1,6 @@
 # Name Tap copy audit
 
-Audited 6 September 2026 after repair 2. Hyphenated terms count as one word. Labels, headings, and actions are included because they must also make sense alone.
+Audited 6 September 2026 after repair 3. Hyphenated terms count as one word. Labels, headings, and actions are included because they must also make sense alone.
 
 ## Default landing page
 
@@ -62,7 +62,7 @@ Audited 6 September 2026 after repair 2. Hyphenated terms count as one word. Lab
 | Name Tap does not identify speakers. | 6 | Pass |
 | Speech recognition can miss or falsely match words. | 8 | Pass |
 | Get a private tap when someone says your chosen phrase. | 10 | Pass |
-| Built by Param Factory · Build 1.2.1-repair2 | 6 | Pass |
+| Built by Param Factory · Build 1.2.2-repair3 | 6 | Pass |
 
 No sentence exceeds 22 words. No banned marketing word appears. The first screen states the job, audience, sample action, and three facts before the illustration.
 
@@ -82,6 +82,18 @@ No sentence exceeds 22 words. No banned marketing word appears. The first screen
 | Requests the vibration pattern and flashes this board. | 8 | Pass |
 
 The matched board intersects the first 390 × 844 and 1440 × 1000 viewports after one click.
+
+## Not-found page
+
+| Copy | Words | Result |
+| --- | ---: | --- |
+| 404 | 1 | Pass; literal status, not a decorative label |
+| Page not found | 3 | Pass; plain page state |
+| This address does not point to a Name Tap page. | 10 | Pass; explains what happened |
+| Back to Name Tap | 4 | Pass; recovery action |
+| Try sample data | 3 | Pass; recovery action |
+
+The not-found page uses the plain status `404`. It has no metaphor or mood label.
 
 ## Terminology
 

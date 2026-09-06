@@ -9,7 +9,7 @@ const appElement = document.querySelector<HTMLDivElement>('#app');
 if (!appElement) throw new Error('App root was not found.');
 const app: HTMLDivElement = appElement;
 
-const BUILD_ID = '1.2.1-repair2';
+const BUILD_ID = '1.2.2-repair3';
 const SITE = 'https://name-vibration-captions.sociobot.in';
 const knownPaths = new Set(['/', '/demo', '/privacy', '/terms', '/404']);
 const demoPhrases: Phrase[] = [
@@ -161,7 +161,7 @@ function footerMarkup(): string {
 }
 
 function notFoundMarkup(): string {
-  return `<main id="main" class="not-found"><p class="eyebrow">Wrong frequency · 404</p><h1 tabindex="-1">Page not found</h1><p>This address does not point to a Name Tap page.</p><div><a class="primary-link" href="/">Back to Name Tap</a><a class="text-link" href="/?demo=1">Try sample data</a></div></main>`;
+  return `<main id="main" class="not-found"><p class="eyebrow">404</p><h1 tabindex="-1">Page not found</h1><p>This address does not point to a Name Tap page.</p><div><a class="primary-link" href="/">Back to Name Tap</a><a class="text-link" href="/?demo=1">Try sample data</a></div></main>`;
 }
 
 function render(preserveScroll = true): void {

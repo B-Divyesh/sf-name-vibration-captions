@@ -119,6 +119,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 1000
   const response = await page.goto(`${base}/does-not-exist`);
   assert.equal(response?.status(), 404);
   assert.equal(await page.getByRole('heading', { level: 1 }).textContent(), 'Page not found');
+  assert.equal(await page.locator('.not-found .eyebrow').textContent(), '404');
+  assert.equal(await page.getByRole('link', { name: 'Back to Name Tap' }).getAttribute('href'), '/');
+  assert.equal(await page.getByRole('link', { name: 'Try sample data' }).getAttribute('href'), '/?demo=1');
   assert.deepEqual(errors.filter((message) => !message.includes('status of 404')), []);
   await context.close();
 }
